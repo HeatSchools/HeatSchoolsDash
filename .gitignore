@@ -165,9 +165,18 @@ venv.bak/
 .ropeproject
 
 # mkdocs documentation
-/site
+docs/_build/
 
-# mypy
+# Next.js / HeatSchools site
+site/node_modules/
+site/.next/
+site/out/
+
+# macOS
+.DS_Store
+
+# Contract (local only)
+Contrato.md
 .mypy_cache/
 .dmypy.json
 dmypy.json
@@ -216,3 +225,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Contract
+Contrato.md

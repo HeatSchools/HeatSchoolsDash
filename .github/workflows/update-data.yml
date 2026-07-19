@@ -1,0 +1,24 @@
+# HeatSchoolsDash — GitHub Actions (placeholder)
+#
+# TODO: cuando existan 01_ingest.py … 06_export.py, este workflow debe:
+#   1. Ejecutarse con cron diario/semanal y workflow_dispatch
+#   2. Correr los scripts del pipeline en orden
+#   3. Publicar site/public/data/ a un bucket (R2/S3), no commitear binarios diarios
+#   4. Desplegar el sitio estático a GitHub Pages
+#
+# Por ahora el mockup usa datos simulados versionados en git.
+
+name: update-data
+
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: "0 6 * * *"
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pipeline pendiente
+        run: echo "TODO — conectar pipeline 01-06 cuando haya datos reales"
