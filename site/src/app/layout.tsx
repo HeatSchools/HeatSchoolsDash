@@ -16,7 +16,7 @@ export const metadata: Metadata = {
  */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning data-theme="light">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
@@ -30,7 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Header />
           <main>{children}</main>
           <footer className="footer">
-            HeatSchools · Wellcome Climate Impacts Award · Datos de demostración ficticios
+            © HeatSchools. Wellcome Climate Impacts Award. Licencia MIT.
           </footer>
         </ThemeProvider>
       </body>

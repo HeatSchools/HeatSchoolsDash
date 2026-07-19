@@ -198,12 +198,57 @@ def build_historical_weekly(school_row, country, years=HIST_YEARS):
     }
 
 
+def build_country_monthly(daily_df):
+    """Agrega series mensuales nacionales a partir del detalle diario simulado."""
+    df = daily_df.copy()
+    df["date"] = pd.to_datetime(df["date"])
+    df["month"] = df["date"].dt.to_period("M").astype(str)
+    monthly = df.groupby("month", as_index=False).agg(
+        tmax_c=("tmax_c", "mean"),
+        tmin_c=("tmin_c", "mean"),
+        pet_c=("pet_c", "mean"),
+        wbgt_c=("wbgt_c", "mean"),
+        heat_days_30=("tmax_c", lambda s: float((s >= 30).mean() * 100)),
+    )
+    for col in ["tmax_c", "tmin_c", "pet_c", "wbgt_c", "heat_days_30"]:
+        monthly[col] = monthly[col].round(2)
+    return {
+        "month": monthly["month"].tolist(),
+        "tmax_c": monthly["tmax_c"].tolist(),
+        "tmin_c": monthly["tmin_c"].tolist(),
+        "pet_c": monthly["pet_c"].tolist(),
+        "wbgt_c": monthly["wbgt_c"].tolist(),
+        "heat_days_30": monthly["heat_days_30"].tolist(),
+    }
+
+
+def build_country_daily(daily_df, days=90):
+    """Promedio nacional diario de Tmax (últimos N días) para series en la home."""
+    df = daily_df.copy()
+    df["date"] = pd.to_datetime(df["date"])
+    national = (
+        df.groupby("date", as_index=False)["tmax_c"]
+        .mean()
+        .sort_values("date")
+        .tail(days)
+    )
+    # Ligera variación diaria adicional sobre el promedio agregado (más realista visualmente)
+    noise = np.random.normal(0, 0.35, size=len(national))
+    tmax = (national["tmax_c"].values + noise).round(2)
+    return {
+        "date": [d.strftime("%Y-%m-%d") for d in national["date"]],
+        "tmax_c": tmax.tolist(),
+    }
+
+
 def main():
     os.makedirs(f"{OUT_ROOT}/schools", exist_ok=True)
     os.makedirs(f"{OUT_ROOT}/recent", exist_ok=True)
+    os.makedirs(f"{OUT_ROOT}/summary", exist_ok=True)
 
     summary = {}
     idx_counter = {"CL": 0, "CO": 0, "PE": 0}
+    all_daily = []
 
     for country in ["CL", "CO", "PE"]:
         regions = REGIONS[country]
@@ -230,6 +275,16 @@ def main():
         # ---- Parquet diario reciente (24 meses), particionado por pais ----
         daily = build_recent_daily(schools_df, country)
         daily.to_parquet(f"{OUT_ROOT}/recent/{country.lower()}.parquet", index=False)
+        all_daily.append(daily)
+
+        # ---- Resumen mensual nacional (series climaticas para home) ----
+        monthly = build_country_monthly(daily)
+        with open(f"{OUT_ROOT}/summary/{country.lower()}_monthly.json", "w", encoding="utf-8") as f:
+            json.dump({"country": country, "resolution": "monthly", **monthly}, f, ensure_ascii=False)
+
+        daily_series = build_country_daily(daily)
+        with open(f"{OUT_ROOT}/summary/{country.lower()}_daily.json", "w", encoding="utf-8") as f:
+            json.dump({"country": country, "resolution": "daily", **daily_series}, f, ensure_ascii=False)
 
         # ---- JSON semanal historico (15 anios), un archivo por escuela ----
         hist_dir = f"{OUT_ROOT}/historical/{country.lower()}"
@@ -249,6 +304,12 @@ def main():
         }
         print(f"{country}: {len(schools_df)} escuelas, {len(daily)} filas diarias, "
               f"{len(schools_df)} archivos historicos semanales")
+
+    # Serie mensual global (tres paises combinados)
+    global_daily = pd.concat(all_daily, ignore_index=True)
+    global_monthly = build_country_monthly(global_daily)
+    with open(f"{OUT_ROOT}/summary/global_monthly.json", "w", encoding="utf-8") as f:
+        json.dump({"country": "ALL", "resolution": "monthly", **global_monthly}, f, ensure_ascii=False)
 
     with open("pipeline/mock_data_summary.json", "w", encoding="utf-8") as f:
         json.dump(summary, f, ensure_ascii=False, indent=2)

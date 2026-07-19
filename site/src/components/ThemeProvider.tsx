@@ -2,14 +2,16 @@
 
 /**
  * Paso 2: tema claro/oscuro con persistencia en localStorage.
+ * Por defecto siempre claro; solo oscuro si el usuario lo eligió antes.
  */
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-type Theme = "light" | "dark";
+export type Theme = "light" | "dark";
 
-const ThemeContext = createContext<{ theme: Theme; toggle: () => void }>({
+const ThemeContext = createContext<{ theme: Theme; toggle: () => void; mounted: boolean }>({
   theme: "light",
   toggle: () => {},
+  mounted: false,
 });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -18,8 +20,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const stored = localStorage.getItem("heatschools-theme") as Theme | null;
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    setTheme(stored ?? (prefersDark ? "dark" : "light"));
+    setTheme(stored === "dark" ? "dark" : "light");
     setMounted(true);
   }, []);
 
@@ -32,7 +33,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const toggle = () => setTheme((t) => (t === "light" ? "dark" : "light"));
 
   return (
-    <ThemeContext.Provider value={{ theme, toggle }}>
+    <ThemeContext.Provider value={{ theme, toggle, mounted }}>
       {children}
     </ThemeContext.Provider>
   );

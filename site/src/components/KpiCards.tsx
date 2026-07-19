@@ -18,3 +18,17 @@ export default function KpiCards({ items }: { items: KpiItem[] }) {
     </div>
   );
 }
+
+/** Fila compacta de KPIs para el panel home (estilo dashboard ENEL·LUZ) */
+export function CompactKpiRow({ items }: { items: KpiItem[] }) {
+  return (
+    <div className="kpi-row-compact">
+      {items.map((item) => (
+        <div key={item.label} className="kpi-compact">
+          <div className="kpi-compact-value">{item.value}</div>
+          <div className="kpi-compact-label">{item.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+}

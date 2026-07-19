@@ -1,18 +1,55 @@
-import Link from "next/link";
-import { loadAllSchools, countByCountry } from "@/lib/schools";
-import { computeGlobalKpis } from "@/lib/aggregates";
-import { COUNTRIES } from "@/lib/types";
-import KpiCards from "@/components/KpiCards";
+import { loadAllSchools, loadCountrySchools, loadAllSchoolFeatures, countByCountry } from "@/lib/schools";
+import { computeGlobalKpis, computeCountryKpis } from "@/lib/aggregates";
+import { countByField, schoolsByCountry } from "@/lib/distributions";
+import { loadCountryDaily } from "@/lib/summary";
+import { COUNTRIES, type CountryCode } from "@/lib/types";
+import { COUNTRY_CODE_TO_ISO } from "@/lib/mapStyles";
+import HomeExplorer from "@/components/HomeExplorer";
+import type { CountryMapInfo } from "@/components/SouthAmericaMap";
 
-/**
- * Página de inicio (Home).
- * Paso 3: hero, tarjetas por país y KPIs globales desde GeoJSON.
- * No inicializa DuckDB-WASM — solo datos resumen pre-agregados en memoria.
- */
+const COUNTRY_BLURBS: Record<CountryCode, string> = {
+  CL: "Muestra en regiones del norte, centro y sur. Datos ficticios para el mockup.",
+  CO: "Cobertura en costa, Andes y Orinoquía. Datos ficticios para el mockup.",
+  PE: "Desde la costa hasta la sierra y selva. Datos ficticios para el mockup.",
+};
+
 export default function HomePage() {
   const allSchools = loadAllSchools();
-  const kpis = computeGlobalKpis(allSchools);
+  const globalKpis = computeGlobalKpis(allSchools);
   const counts = countByCountry();
+  const schoolFeatures = loadAllSchoolFeatures();
+
+  const dailyByCountry = Object.fromEntries(
+    COUNTRIES.map((c) => [c.code, loadCountryDaily(c.slug)])
+  ) as Record<CountryCode, ReturnType<typeof loadCountryDaily>>;
+
+  const countries = COUNTRIES.map((c) => {
+    const schools = loadCountrySchools(c.code);
+    return {
+      code: c.code,
+      route: c.route,
+      label: c.label,
+      count: counts[c.code],
+      kpis: computeCountryKpis(schools),
+      distribution: {
+        byLevel: countByField(schools, "level"),
+        bySector: countByField(schools, "sector"),
+        byZone: countByField(schools, "urban_rural"),
+      },
+      dailyClimate: dailyByCountry[c.code],
+    };
+  });
+
+  const mapCountries: CountryMapInfo[] = countries.map((c) => ({
+    code: c.code,
+    iso: COUNTRY_CODE_TO_ISO[c.code],
+    label: c.label,
+    count: c.count,
+    avgTmax: c.kpis.avgTmax,
+    avgWellbeing: c.kpis.avgWellbeing,
+    avgHealth: c.kpis.avgHealth,
+    blurb: COUNTRY_BLURBS[c.code],
+  }));
 
   return (
     <div className="container">
@@ -24,26 +61,17 @@ export default function HomePage() {
         </p>
       </section>
 
-      <section className="country-cards">
-        {COUNTRIES.map((c) => (
-          <article key={c.code} className="country-card">
-            <h3>{c.label}</h3>
-            <div className="count">{counts[c.code]}</div>
-            <div className="count-label">escuelas en la muestra</div>
-            <Link href={`/${c.route}`} className="btn btn-primary">
-              Explorar →
-            </Link>
-          </article>
-        ))}
-      </section>
-
-      <KpiCards
-        items={[
-          { label: "Total escuelas", value: kpis.totalSchools },
-          { label: "Tmax promedio", value: `${kpis.avgTmax}°C` },
-          { label: "Bienestar promedio", value: kpis.avgWellbeing },
-          { label: "Salud promedio", value: kpis.avgHealth },
-        ]}
+      <HomeExplorer
+        globalKpis={globalKpis}
+        dailyByCountry={dailyByCountry}
+        globalDistribution={{
+          byCountry: schoolsByCountry(allSchools),
+          byLevel: countByField(allSchools, "level"),
+          bySector: countByField(allSchools, "sector"),
+        }}
+        mapCountries={mapCountries}
+        schoolFeatures={schoolFeatures}
+        countries={countries}
       />
 
       <div className="disclaimer">
