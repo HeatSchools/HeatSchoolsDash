@@ -56,11 +56,7 @@ export default function HomeStatsPanel({
       <div className="stats-panel-header">
         <span className="stats-eyebrow">{active ? "PAÍS" : "PANORAMA"}</span>
         <h2 className="stats-title">{active ? active.label : "Cifras generales"}</h2>
-        {active ? (
-          <p className="stats-subtitle">{active.count} escuelas en la muestra</p>
-        ) : (
-          <p className="stats-subtitle">Chile · Colombia · Perú</p>
-        )}
+        {!active && <p className="stats-subtitle">Chile · Colombia · Perú</p>}
       </div>
 
       <div key={panelKey} className="stats-panel-body">
@@ -134,7 +130,7 @@ export default function HomeStatsPanel({
         </div>
 
         {active && (
-          <Link href={`/${active.route}`} className="btn btn-primary explore-btn">
+          <Link href={`/${active.route}`} className="btn explore-btn">
             Explorar →
           </Link>
         )}

@@ -20,6 +20,12 @@ import type { CountryCode, SchoolFeature } from "@/lib/types";
 const SA_GEOJSON_URL = "/data/regions/south-america.geojson";
 const POPUP_FADE_MS = 220;
 
+/** Límites de pan/zoom: Sudamérica (no mar abierto ni otros continentes). */
+const SA_MAX_BOUNDS: maplibregl.LngLatBoundsLike = [
+  [-82, -56],
+  [-34, 12],
+];
+
 const CUSTOM_LAYERS = [
   "school-cluster-count",
   "school-points",
@@ -441,6 +447,8 @@ export default function SouthAmericaMap({
           zoom: 2.95,
           minZoom: 2.4,
           maxZoom: 10,
+          maxBounds: SA_MAX_BOUNDS,
+          renderWorldCopies: false,
           attributionControl: false,
         });
 

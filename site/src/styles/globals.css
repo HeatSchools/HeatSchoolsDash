@@ -892,6 +892,18 @@ a:hover {
 .explore-btn {
   margin-top: auto;
   align-self: flex-start;
+  background: var(--gradient-heat-bg);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 14px rgba(185, 28, 28, 0.22);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.explore-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(185, 28, 28, 0.3);
+  text-decoration: none;
+  color: #fff;
 }
 
 .stats-hint {

@@ -11,23 +11,30 @@ import { formatDayLabel } from "@/lib/climate";
 import { useTheme } from "./ThemeProvider";
 import ExportToolbar from "./ExportToolbar";
 import { downloadCsv, downloadSvgAsPng, shareLink } from "@/lib/export";
+import {
+  applyLineDrawProgress,
+  useViewportChartAnimation,
+} from "@/hooks/useViewportChartAnimation";
 
 const PIE_COLORS = ["#e07a5f", "#f2a154", "#1e4d6b", "#6db3d9", "#c05621", "#94a3b8"];
 const WINDOW_DAYS = 30;
 const Y_DOMAIN: [number, number] = [17.5, 27.5];
 
 export function PieChart({ data }: { data: PieSlice[] }) {
+  const { containerRef, progress } = useViewportChartAnimation(950);
   const total = data.reduce((s, d) => s + d.value, 0) || 1;
   let acc = 0;
   const stops: string[] = [];
   const labels: { pct: number; midAngle: number; key: string }[] = [];
 
   data.forEach((d, i) => {
-    const start = (acc / total) * 100;
+    const finalStart = (acc / total) * 100;
     acc += d.value;
-    const end = (acc / total) * 100;
+    const finalEnd = (acc / total) * 100;
+    const start = finalStart * progress;
+    const end = finalEnd * progress;
     stops.push(`${PIE_COLORS[i % PIE_COLORS.length]} ${start}% ${end}%`);
-    const midAngle = ((start + end) / 200) * 360 - 90;
+    const midAngle = ((finalStart + finalEnd) / 200) * 360 - 90;
     labels.push({
       pct: Math.round((d.value / total) * 100),
       midAngle,
@@ -35,12 +42,19 @@ export function PieChart({ data }: { data: PieSlice[] }) {
     });
   });
 
+  const labelOpacity = progress >= 0.92 ? 1 : Math.max(0, (progress - 0.75) / 0.17);
+
   return (
-    <div className="pie-wrap">
+    <div ref={containerRef} className="pie-wrap">
       <div className="pie-ring">
         <div
           className="pie-donut"
-          style={{ background: `conic-gradient(${stops.join(", ")})` }}
+          style={{
+            background:
+              progress > 0
+                ? `conic-gradient(from -90deg, ${stops.join(", ")})`
+                : "conic-gradient(transparent 0%, transparent 100%)",
+          }}
           role="img"
           aria-label="Gráfico de distribución"
         />
@@ -53,14 +67,17 @@ export function PieChart({ data }: { data: PieSlice[] }) {
             <span
               key={l.key}
               className="pie-slice-pct"
-              style={{ transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))` }}
+              style={{
+                transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
+                opacity: labelOpacity,
+              }}
             >
               {l.pct}%
             </span>
           );
         })}
       </div>
-      <div className="pie-labels">
+      <div className="pie-labels" style={{ opacity: 0.35 + labelOpacity * 0.65 }}>
         {data.map((d, i) => (
           <span key={d.label}>
             <i style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
@@ -83,6 +100,7 @@ export function DailyTmaxChart({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { containerRef, progress } = useViewportChartAnimation(1100);
   const { theme } = useTheme();
   const [windowEnd, setWindowEnd] = useState(() => Math.min(WINDOW_DAYS, series.date.length));
 
@@ -160,12 +178,19 @@ export function DailyTmaxChart({
 
     ref.current.append(chart);
 
+    applyLineDrawProgress(chart.querySelector("svg"), progress);
+
     if (scrollRef.current && animated) {
       scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
     }
 
     return () => chart.remove();
-  }, [series, windowEnd, theme, animated]);
+  }, [series, windowEnd, theme, animated, progress]);
+
+  useEffect(() => {
+    const svg = ref.current?.querySelector("svg") as SVGSVGElement | null;
+    applyLineDrawProgress(svg, progress);
+  }, [progress]);
 
   const exportCsv = () => {
     downloadCsv(
@@ -186,7 +211,7 @@ export function DailyTmaxChart({
   };
 
   return (
-    <div className="daily-chart-wrap">
+    <div ref={containerRef} className="daily-chart-wrap">
       <ExportToolbar
         variant="block"
         onShare={exportShare}
