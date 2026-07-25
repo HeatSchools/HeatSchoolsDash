@@ -15,25 +15,35 @@ import {
   PROJECT_COUNTRY_ISOS,
   type ProjectCountryIso,
 } from "@/lib/mapStyles";
+import {
+  DEFAULT_TEMP_SCENARIO,
+  fetchTempGrid,
+  findMapLabelAnchor,
+  syncTempGridLayer,
+  type TempScenarioId,
+} from "@/lib/tempGrid";
+import TempScenarioFilter from "./TempScenarioFilter";
 import type { CountryCode, SchoolFeature } from "@/lib/types";
 
 const SA_GEOJSON_URL = "/data/regions/south-america.geojson";
 const POPUP_FADE_MS = 220;
 
-/** Límites de pan/zoom: Sudamérica (no mar abierto ni otros continentes). */
+/** Límites de pan/zoom: Sudamérica (incl. norte/oriente — Venezuela visible). */
 const SA_MAX_BOUNDS: maplibregl.LngLatBoundsLike = [
   [-82, -56],
-  [-34, 12],
+  [-31, 13.5],
 ];
 
 const CUSTOM_LAYERS = [
   "school-cluster-count",
   "school-points",
   "school-clusters",
+  "sa-borders",
   "sa-dim",
+  "temp-grid-heat",
 ] as const;
 
-const CUSTOM_SOURCES = ["schools", "sa-countries"] as const;
+const CUSTOM_SOURCES = ["temp-grid", "schools", "sa-countries"] as const;
 
 export interface CountryMapInfo {
   code: CountryCode;
@@ -107,7 +117,9 @@ export default function SouthAmericaMap({
   const handlersRef = useRef<InteractionHandlers>({});
   const styleGenerationRef = useRef(0);
   const mapThemeRef = useRef<"light" | "dark" | null>(null);
+  const tempGridDataRef = useRef<GeoJSON.FeatureCollection | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [tempScenario, setTempScenario] = useState<TempScenarioId>(DEFAULT_TEMP_SCENARIO);
   const { theme, mounted } = useTheme();
 
   schoolsRef.current = schoolFeatures;
@@ -123,6 +135,10 @@ export default function SouthAmericaMap({
 
   function clusterStrokeColor() {
     return themeRef.current === "dark" ? "#f0f4f8" : "#ffffff";
+  }
+
+  function borderColor() {
+    return themeRef.current === "dark" ? "#b0bcc8" : "#4a5568";
   }
 
   function applyDimming(map: maplibregl.Map, focusIso: ProjectCountryIso | null) {
@@ -227,13 +243,37 @@ export default function SouthAmericaMap({
 
     removeCustomContent(map);
 
+    const beforeLabels = findMapLabelAnchor(map);
+
     map.addSource("sa-countries", { type: "geojson", data: geojsonRef.current });
-    map.addLayer({
-      id: "sa-dim",
-      type: "fill",
-      source: "sa-countries",
-      paint: { "fill-color": dimColor(), "fill-opacity": 0 },
-    });
+
+    if (tempGridDataRef.current) {
+      syncTempGridLayer(map, tempGridDataRef.current, beforeLabels);
+    }
+
+    map.addLayer(
+      {
+        id: "sa-dim",
+        type: "fill",
+        source: "sa-countries",
+        paint: { "fill-color": dimColor(), "fill-opacity": 0 },
+      },
+      beforeLabels
+    );
+
+    map.addLayer(
+      {
+        id: "sa-borders",
+        type: "line",
+        source: "sa-countries",
+        paint: {
+          "line-color": borderColor(),
+          "line-width": ["interpolate", ["linear"], ["zoom"], 2, 0.55, 5, 0.95, 8, 1.35],
+          "line-opacity": 0.78,
+        },
+      },
+      beforeLabels
+    );
 
     map.addSource("schools", {
       type: "geojson",
@@ -245,45 +285,54 @@ export default function SouthAmericaMap({
 
     const clusterStroke = clusterStrokeColor();
 
-    map.addLayer({
-      id: "school-clusters",
-      type: "circle",
-      source: "schools",
-      filter: ["has", "point_count"],
-      paint: {
-        "circle-color": "#c05621",
-        "circle-radius": ["step", ["get", "point_count"], 16, 20, 22, 50, 28, 100, 34],
-        "circle-stroke-width": 2,
-        "circle-stroke-color": clusterStroke,
-        "circle-opacity": 0.92,
+    map.addLayer(
+      {
+        id: "school-clusters",
+        type: "circle",
+        source: "schools",
+        filter: ["has", "point_count"],
+        paint: {
+          "circle-color": "#c05621",
+          "circle-radius": ["step", ["get", "point_count"], 16, 20, 22, 50, 28, 100, 34],
+          "circle-stroke-width": 2,
+          "circle-stroke-color": clusterStroke,
+          "circle-opacity": 0.92,
+        },
       },
-    });
+      beforeLabels
+    );
 
-    map.addLayer({
-      id: "school-cluster-count",
-      type: "symbol",
-      source: "schools",
-      filter: ["has", "point_count"],
-      layout: {
-        "text-field": "{point_count_abbreviated}",
-        "text-size": 12,
-        "text-font": ["Noto Sans Regular"],
+    map.addLayer(
+      {
+        id: "school-cluster-count",
+        type: "symbol",
+        source: "schools",
+        filter: ["has", "point_count"],
+        layout: {
+          "text-field": "{point_count_abbreviated}",
+          "text-size": 12,
+          "text-font": ["Noto Sans Regular"],
+        },
+        paint: { "text-color": "#ffffff" },
       },
-      paint: { "text-color": "#ffffff" },
-    });
+      beforeLabels
+    );
 
-    map.addLayer({
-      id: "school-points",
-      type: "circle",
-      source: "schools",
-      filter: ["!", ["has", "point_count"]],
-      paint: {
-        "circle-color": "#e07a5f",
-        "circle-radius": 4,
-        "circle-stroke-width": 1,
-        "circle-stroke-color": clusterStroke,
+    map.addLayer(
+      {
+        id: "school-points",
+        type: "circle",
+        source: "schools",
+        filter: ["!", ["has", "point_count"]],
+        paint: {
+          "circle-color": "#e07a5f",
+          "circle-radius": 4,
+          "circle-stroke-width": 1,
+          "circle-stroke-color": clusterStroke,
+        },
       },
-    });
+      beforeLabels
+    );
 
     applyDimming(map, focusRef.current);
   }
@@ -431,7 +480,23 @@ export default function SouthAmericaMap({
   }, []);
 
   useEffect(() => {
-    if (!mounted || !containerRef.current) return;
+    let cancelled = false;
+    fetchTempGrid(tempScenario)
+      .then((data) => {
+        if (cancelled) return;
+        tempGridDataRef.current = data;
+        const map = mapRef.current;
+        if (map?.isStyleLoaded() && map.getSource("sa-countries")) {
+          syncTempGridLayer(map, data, findMapLabelAnchor(map));
+        }
+      })
+      .catch(console.error);
+    return () => {
+      cancelled = true;
+    };
+  }, [tempScenario, mapReady]);
+
+  useEffect(() => {
     let cancelled = false;
 
     fetch(SA_GEOJSON_URL)
@@ -443,9 +508,9 @@ export default function SouthAmericaMap({
         const map = new maplibregl.Map({
           container: containerRef.current,
           style: getMapStyleUrl(themeRef.current),
-          center: [-63.5, -22],
-          zoom: 2.95,
-          minZoom: 2.4,
+          center: [-62, -21],
+          zoom: 2.82,
+          minZoom: 2.35,
           maxZoom: 10,
           maxBounds: SA_MAX_BOUNDS,
           renderWorldCopies: false,
@@ -516,6 +581,7 @@ export default function SouthAmericaMap({
 
   return (
     <div className="home-map-wrap">
+      <TempScenarioFilter value={tempScenario} onChange={setTempScenario} />
       <div className="map-panel-top">
         <p className="panel-hint">
           <span className="hint-cursor" aria-hidden="true">↖</span>

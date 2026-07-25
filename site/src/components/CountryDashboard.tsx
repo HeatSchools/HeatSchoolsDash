@@ -2,7 +2,6 @@
 
 /**
  * Vista principal de exploración por país: mapa, filtros, KPIs, gráficos y tabla.
- * Paso 3–4: todo se alimenta del GeoJSON; DuckDB solo en el modal de detalle.
  */
 import { useMemo, useState } from "react";
 import type { CountryMeta, SchoolFeature, SchoolProperties } from "@/lib/types";
@@ -55,8 +54,37 @@ export default function CountryDashboard({ country, allFeatures, allSchools }: P
     ? allSchools.find((s) => s.school_id === selectedId) ?? null
     : null;
 
+  const isChile = country.code === "CL";
+
+  const mapBlock = (
+    <div className={`panel country-map-panel${isChile ? " country-map-panel--tall" : ""}`}>
+      <h3>Mapa de escuelas (color = severidad de calor)</h3>
+      <SchoolMap
+        features={filteredFeatures}
+        center={country.mapCenter}
+        zoom={country.mapZoom}
+        onSchoolClick={setSelectedId}
+        exportName={country.route}
+        variant={isChile ? "tall" : "default"}
+      />
+    </div>
+  );
+
+  const chartsBlock = (
+    <>
+      <div className="panel">
+        <h3>Escuelas por región</h3>
+        <RegionBarChart data={regionData} />
+      </div>
+      <div className="panel">
+        <h3>Evolución Tmax nacional (agregado)</h3>
+        <TmaxLineChart data={lineData} />
+      </div>
+    </>
+  );
+
   return (
-    <div className="container dashboard-grid">
+    <div className={`container dashboard-grid country-dashboard country-dashboard--${country.slug}`}>
       <h1 style={{ fontFamily: "var(--font-heading)", marginTop: "1.5rem" }}>
         {country.label}
       </h1>
@@ -100,26 +128,17 @@ export default function CountryDashboard({ country, allFeatures, allSchools }: P
         ]}
       />
 
-      <div className="panel">
-        <h3>Mapa de escuelas (color = severidad de calor)</h3>
-        <SchoolMap
-          features={filteredFeatures}
-          center={country.mapCenter}
-          zoom={country.mapZoom}
-          onSchoolClick={setSelectedId}
-        />
-      </div>
-
-      <div className="dashboard-charts">
-        <div className="panel">
-          <h3>Escuelas por región</h3>
-          <RegionBarChart data={regionData} />
+      {isChile ? (
+        <div className="country-explorer-grid">
+          <div className="country-charts-stack">{chartsBlock}</div>
+          {mapBlock}
         </div>
-        <div className="panel">
-          <h3>Evolución Tmax nacional (agregado)</h3>
-          <TmaxLineChart data={lineData} />
-        </div>
-      </div>
+      ) : (
+        <>
+          {mapBlock}
+          <div className="dashboard-charts">{chartsBlock}</div>
+        </>
+      )}
 
       <div className="panel">
         <h3>Tabla de escuelas ({filtered.length})</h3>

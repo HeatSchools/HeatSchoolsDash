@@ -1,0 +1,35 @@
+{
+  "grid_km": 25,
+  "format": "geojson.gz",
+  "t_range": [
+    12.0,
+    42.0
+  ],
+  "scenarios": {
+    "2000-2025": {
+      "label": "2000–2025 (histórico)",
+      "warming_c": 0.0,
+      "default": true,
+      "cells": 28322,
+      "file_mb": 0.15
+    },
+    "2025-2050": {
+      "label": "2025–2050",
+      "warming_c": 1.05,
+      "cells": 28322,
+      "file_mb": 0.16
+    },
+    "2050-2075": {
+      "label": "2050–2075",
+      "warming_c": 2.15,
+      "cells": 28322,
+      "file_mb": 0.16
+    },
+    "2075-2100": {
+      "label": "2075–2100",
+      "warming_c": 3.45,
+      "cells": 28322,
+      "file_mb": 0.15
+    }
+  }
+}
