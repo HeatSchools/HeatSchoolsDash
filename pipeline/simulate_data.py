@@ -15,9 +15,12 @@ import json
 import os
 import random
 from datetime import date, timedelta
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+from geo_utils import sample_near_region
 
 random.seed(42)
 np.random.seed(42)
@@ -26,8 +29,8 @@ N_PER_COUNTRY = 200
 DAILY_MONTHS = 24
 HIST_YEARS = 15
 
-# Paso 0: salida en site/public/data para servir como estáticos desde Next.js
-OUT_ROOT = "site/public/data"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+OUT_ROOT = REPO_ROOT / "site" / "public" / "data"
 
 # ---------------------------------------------------------------------------
 # Regiones representativas por pais: (admin1, lat, lon, altitud_base_m, tmax_base_c)
@@ -88,32 +91,31 @@ NAME_WORDS = [
 ]
 
 
-def make_school(country, idx, region):
+def make_school(country, idx, region, rng):
     admin1, base_lat, base_lon, base_alt, base_tmax = region
-    lat = base_lat + np.random.normal(0, 0.55)
-    lon = base_lon + np.random.normal(0, 0.55)
-    altitude = max(0, base_alt + np.random.normal(0, 120))
+    lat, lon = sample_near_region(country, base_lat, base_lon, rng)
+    altitude = max(0, base_alt + rng.normal(0, 120))
 
     school_id = f"{SCHOOL_ID_PREFIX[country]}{idx:04d}"
     school_name = f"Escuela {random.choice(NAME_WORDS)} {idx}"
     admin2 = f"{admin1} - Comuna {1 + idx % 12}"
 
-    level = np.random.choice(LEVELS, p=LEVEL_W)
-    sector = np.random.choice(SECTORS, p=SECTOR_W)
-    urban_rural = np.random.choice(URBAN_RURAL, p=UR_W)
-    enrollment = int(np.clip(np.random.lognormal(mean=5.6, sigma=0.5), 60, 1400))
+    level = rng.choice(LEVELS, p=LEVEL_W)
+    sector = rng.choice(SECTORS, p=SECTOR_W)
+    urban_rural = rng.choice(URBAN_RURAL, p=UR_W)
+    enrollment = int(np.clip(rng.lognormal(mean=5.6, sigma=0.5), 60, 1400))
 
-    tmax_avg = base_tmax + np.random.normal(0, 1.3)
-    pet_avg = tmax_avg + np.random.uniform(1.5, 5.5)
-    wbgt_avg = tmax_avg - np.random.uniform(1.0, 4.0)
+    tmax_avg = base_tmax + rng.normal(0, 1.3)
+    pet_avg = tmax_avg + rng.uniform(1.5, 5.5)
+    wbgt_avg = tmax_avg - rng.uniform(1.0, 4.0)
 
-    heat_days_30 = int(np.clip((tmax_avg - 24) * 15 + np.random.normal(0, 12), 0, 365))
-    heat_days_35 = int(np.clip(heat_days_30 * np.random.uniform(0.05, 0.30), 0, heat_days_30))
-    tx90p = round(float(np.clip(np.random.normal(11, 3), 3, 25)), 1)
-    wsdi = int(np.clip(heat_days_30 * np.random.uniform(0.15, 0.5) + np.random.normal(0, 3), 0, 90))
+    heat_days_30 = int(np.clip((tmax_avg - 24) * 15 + rng.normal(0, 12), 0, 365))
+    heat_days_35 = int(np.clip(heat_days_30 * rng.uniform(0.05, 0.30), 0, heat_days_30))
+    tx90p = round(float(np.clip(rng.normal(11, 3), 3, 25)), 1)
+    wsdi = int(np.clip(heat_days_30 * rng.uniform(0.15, 0.5) + rng.normal(0, 3), 0, 90))
 
-    wellbeing_score = round(float(np.clip(np.random.normal(65, 12), 20, 98)), 1)
-    health_index = round(float(np.clip(80 - heat_days_30 * 0.08 + np.random.normal(0, 8), 25, 97)), 1)
+    wellbeing_score = round(float(np.clip(rng.normal(65, 12), 20, 98)), 1)
+    health_index = round(float(np.clip(80 - heat_days_30 * 0.08 + rng.normal(0, 8), 25, 97)), 1)
 
     return {
         "school_id": school_id,
@@ -242,10 +244,11 @@ def build_country_daily(daily_df, days=90):
 
 
 def main():
-    os.makedirs(f"{OUT_ROOT}/schools", exist_ok=True)
-    os.makedirs(f"{OUT_ROOT}/recent", exist_ok=True)
-    os.makedirs(f"{OUT_ROOT}/summary", exist_ok=True)
+    os.makedirs(OUT_ROOT / "schools", exist_ok=True)
+    os.makedirs(OUT_ROOT / "recent", exist_ok=True)
+    os.makedirs(OUT_ROOT / "summary", exist_ok=True)
 
+    rng = np.random.default_rng(42)
     summary = {}
     idx_counter = {"CL": 0, "CO": 0, "PE": 0}
     all_daily = []
@@ -256,7 +259,7 @@ def main():
         for i in range(N_PER_COUNTRY):
             idx_counter[country] += 1
             region = regions[i % len(regions)]
-            schools.append(make_school(country, idx_counter[country], region))
+            schools.append(make_school(country, idx_counter[country], region, rng))
         schools_df = pd.DataFrame(schools)
 
         # ---- GeoJSON (capa de mapa, sin la columna interna _base_tmax) ----
@@ -269,29 +272,29 @@ def main():
                 "properties": props,
             })
         geojson = {"type": "FeatureCollection", "features": features}
-        with open(f"{OUT_ROOT}/schools/{country.lower()}.geojson", "w", encoding="utf-8") as f:
+        with open(OUT_ROOT / "schools" / f"{country.lower()}.geojson", "w", encoding="utf-8") as f:
             json.dump(geojson, f, ensure_ascii=False)
 
         # ---- Parquet diario reciente (24 meses), particionado por pais ----
         daily = build_recent_daily(schools_df, country)
-        daily.to_parquet(f"{OUT_ROOT}/recent/{country.lower()}.parquet", index=False)
+        daily.to_parquet(OUT_ROOT / "recent" / f"{country.lower()}.parquet", index=False)
         all_daily.append(daily)
 
         # ---- Resumen mensual nacional (series climaticas para home) ----
         monthly = build_country_monthly(daily)
-        with open(f"{OUT_ROOT}/summary/{country.lower()}_monthly.json", "w", encoding="utf-8") as f:
+        with open(OUT_ROOT / "summary" / f"{country.lower()}_monthly.json", "w", encoding="utf-8") as f:
             json.dump({"country": country, "resolution": "monthly", **monthly}, f, ensure_ascii=False)
 
         daily_series = build_country_daily(daily)
-        with open(f"{OUT_ROOT}/summary/{country.lower()}_daily.json", "w", encoding="utf-8") as f:
+        with open(OUT_ROOT / "summary" / f"{country.lower()}_daily.json", "w", encoding="utf-8") as f:
             json.dump({"country": country, "resolution": "daily", **daily_series}, f, ensure_ascii=False)
 
         # ---- JSON semanal historico (15 anios), un archivo por escuela ----
-        hist_dir = f"{OUT_ROOT}/historical/{country.lower()}"
+        hist_dir = OUT_ROOT / "historical" / country.lower()
         os.makedirs(hist_dir, exist_ok=True)
         for _, s in schools_df.iterrows():
             series = build_historical_weekly(s, country)
-            with open(f"{hist_dir}/{s['school_id']}.json", "w", encoding="utf-8") as f:
+            with open(hist_dir / f"{s['school_id']}.json", "w", encoding="utf-8") as f:
                 json.dump({"school_id": s["school_id"], "resolution": "weekly",
                            "years": HIST_YEARS, **series}, f, ensure_ascii=False,
                            separators=(",", ":"))
@@ -308,12 +311,13 @@ def main():
     # Serie mensual global (tres paises combinados)
     global_daily = pd.concat(all_daily, ignore_index=True)
     global_monthly = build_country_monthly(global_daily)
-    with open(f"{OUT_ROOT}/summary/global_monthly.json", "w", encoding="utf-8") as f:
+    with open(OUT_ROOT / "summary" / "global_monthly.json", "w", encoding="utf-8") as f:
         json.dump({"country": "ALL", "resolution": "monthly", **global_monthly}, f, ensure_ascii=False)
 
-    with open("pipeline/mock_data_summary.json", "w", encoding="utf-8") as f:
+    summary_path = Path(__file__).resolve().parent / "mock_data_summary.json"
+    with open(summary_path, "w", encoding="utf-8") as f:
         json.dump(summary, f, ensure_ascii=False, indent=2)
-    print("Resumen escrito en pipeline/mock_data_summary.json")
+    print(f"Resumen escrito en {summary_path}")
 
 
 if __name__ == "__main__":

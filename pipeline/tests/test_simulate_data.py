@@ -11,6 +11,7 @@ import pandas as pd
 import pytest
 
 from schema import COORD_BOUNDS, N_SCHOOLS_PER_COUNTRY, RECENT_COLUMNS, SCHOOL_PROPERTIES
+from geo_utils import point_in_country
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_ROOT = REPO_ROOT / "site" / "public" / "data"
@@ -43,6 +44,18 @@ def test_coordenadas_plausibles(country_code, slug):
         lon, lat = feat["geometry"]["coordinates"]
         assert bounds["lat"][0] <= lat <= bounds["lat"][1]
         assert bounds["lon"][0] <= lon <= bounds["lon"][1]
+
+
+@pytest.mark.parametrize("country_code,slug", [("CL", "cl"), ("CO", "co"), ("PE", "pe")])
+def test_coordenadas_en_territorio(country_code, slug):
+    path = DATA_ROOT / "schools" / f"{slug}.geojson"
+    with open(path, encoding="utf-8") as f:
+        geojson = json.load(f)
+    for feat in geojson["features"]:
+        lon, lat = feat["geometry"]["coordinates"]
+        assert point_in_country(country_code, lon, lat), (
+            f"Punto fuera de {country_code}: ({lon}, {lat})"
+        )
 
 
 @pytest.mark.parametrize("country", ["cl", "co", "pe"])
