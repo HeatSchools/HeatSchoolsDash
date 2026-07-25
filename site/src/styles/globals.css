@@ -15,6 +15,7 @@
   --color-bg: #ffffff;
   --color-bg-alt: #ffffff;
   --color-surface: #faf8f5;
+  --color-surface-soft: #fefdfb;
   --color-text: #1a1a2e;
   --color-text-muted: #5c6370;
   --color-border: #e8e4df;
@@ -47,6 +48,7 @@
   --color-bg: #0f1419;
   --color-bg-alt: #1a2332;
   --color-surface: #1a2332;
+  --color-surface-soft: #1e2838;
   --color-text: #f0f4f8;
   --color-text-muted: #94a3b8;
   --color-border: #2d3f54;
@@ -98,7 +100,7 @@ a:hover {
   top: 0;
   z-index: 100;
   height: var(--header-height);
-  background: var(--color-surface);
+  background: var(--color-surface-soft);
   border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
@@ -121,6 +123,9 @@ a:hover {
 }
 
 .logo {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
   font-family: var(--font-heading);
   font-weight: 700;
   font-size: 1.38rem;
@@ -128,10 +133,18 @@ a:hover {
   text-decoration: none;
 }
 
+.logo:hover {
+  text-decoration: none;
+}
+
 .logo span {
+  display: inline-block;
+  line-height: 1;
+  transform: translateY(0.05em);
   background: var(--gradient-heat-text);
   -webkit-background-clip: text;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
   color: transparent;
 }
 
@@ -693,7 +706,8 @@ a:hover {
 
 /* Acerca */
 .acerca-page {
-  padding: 2rem 0 3rem;
+  padding: 1.5rem 0 3rem;
+  width: 100%;
 }
 
 .acerca-page h1 {
@@ -711,6 +725,7 @@ a:hover {
 
 .acerca-page .panel {
   margin-bottom: 1.25rem;
+  background: var(--color-surface-soft);
 }
 
 .acerca-page .panel h2 {

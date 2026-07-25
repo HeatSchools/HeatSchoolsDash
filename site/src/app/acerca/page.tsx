@@ -31,7 +31,8 @@ export default function AcercaPage() {
   const team = teamData.members as TeamMember[];
 
   return (
-    <div className="container acerca-page">
+    <div className="container">
+      <div className="acerca-page">
       <h1>Sobre el proyecto</h1>
       <p className="acerca-lead">
         HeatSchools es una iniciativa de investigación apoyada por el Wellcome Climate Impacts
@@ -148,6 +149,7 @@ export default function AcercaPage() {
           <li><strong>Perú:</strong> UPCH (institución anfitriona)</li>
         </ul>
       </section>
+      </div>
     </div>
   );
 }
