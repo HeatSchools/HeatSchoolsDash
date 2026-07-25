@@ -30,7 +30,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Header />
           <main>{children}</main>
           <footer className="footer">
-            © HeatSchools. Wellcome Climate Impacts Award. Licencia MIT.
+            <p>© HeatSchools. Wellcome Climate Impacts Award. Licencia MIT.</p>
+            <p className="footer-sub">Universidad Peruana Cayetano Heredia · Lima, Perú</p>
           </footer>
         </ThemeProvider>
       </body>

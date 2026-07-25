@@ -22,6 +22,11 @@
   --color-heat-mid: #f2a154;
   --color-heat-high: #e07a5f;
   --color-heat-extreme: #c0392b;
+  --heat-1: #b91c1c;
+  --heat-2: #ea580c;
+  --heat-3: #f59e0b;
+  --gradient-heat-text: linear-gradient(90deg, var(--heat-1), var(--heat-3));
+  --gradient-heat-bg: linear-gradient(135deg, var(--heat-1), var(--heat-2) 60%, var(--heat-3));
   --font-heading: "Inter", system-ui, -apple-system, sans-serif;
   --font-body: "Inter", system-ui, -apple-system, sans-serif;
   --radius: 8px;
@@ -66,7 +71,8 @@ body {
   font-family: var(--font-body);
   background: var(--color-bg);
   color: var(--color-text);
-  line-height: 1.6;
+  font-size: 0.9375rem;
+  line-height: 1.75;
   min-height: 100vh;
 }
 
@@ -117,13 +123,16 @@ a:hover {
 .logo {
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 1.15rem;
+  font-size: 1.38rem;
   color: var(--color-text);
   text-decoration: none;
 }
 
 .logo span {
-  color: var(--color-accent);
+  background: var(--gradient-heat-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .nav-links {
@@ -695,12 +704,25 @@ a:hover {
 .acerca-lead {
   font-size: 1.05rem;
   color: var(--color-text-muted);
-  max-width: 680px;
+  max-width: none;
   margin-bottom: 2rem;
+  line-height: 1.55;
 }
 
 .acerca-page .panel {
   margin-bottom: 1.25rem;
+}
+
+.acerca-page .panel h2 {
+  margin-bottom: 0.75rem;
+}
+
+.acerca-objectives-label {
+  margin-top: 1rem;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--color-text);
 }
 
 .acerca-list {
@@ -719,10 +741,60 @@ a:hover {
   font-style: italic;
 }
 
-.acerca-section-intro {
-  color: var(--color-text-muted);
+.acerca-repo-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.acerca-repo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius);
+  font-weight: 600;
   font-size: 0.92rem;
-  margin-bottom: 1.25rem;
+  color: #fff;
+  background: var(--gradient-heat-bg);
+  box-shadow: 0 4px 14px rgba(185, 28, 28, 0.22);
+  text-decoration: none;
+  border: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.acerca-repo-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(185, 28, 28, 0.3);
+  text-decoration: none;
+  color: #fff;
+}
+
+.acerca-repo-btn svg {
+  flex-shrink: 0;
+}
+
+.team-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.65rem;
+  margin-top: 0.65rem;
+}
+
+.team-link-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: transform 0.2s ease, color 0.15s;
+}
+
+.team-link-icon:hover {
+  transform: scale(1.18);
+  color: var(--color-primary);
+  text-decoration: none;
 }
 
 .team-grid {
@@ -768,15 +840,17 @@ a:hover {
   object-fit: cover;
 }
 
-.team-name {
+.team-card .team-name {
   font-family: var(--font-heading);
   font-size: 0.95rem;
-  line-height: 1.35;
-  margin-bottom: 0.35rem;
+  font-weight: 600;
+  line-height: 1.25;
+  margin-bottom: 0.1rem;
   color: var(--color-text);
 }
 
 .team-role {
+  margin-top: 0;
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--color-primary);
@@ -787,6 +861,10 @@ a:hover {
   font-size: 0.78rem;
   line-height: 1.45;
   color: var(--color-text-muted);
+}
+
+.team-affiliation-line {
+  display: block;
 }
 
 .acerca-methods code {
@@ -1111,6 +1189,13 @@ tr:hover td {
   color: var(--color-text-muted);
   border-top: 1px solid var(--color-border);
   margin-top: 2rem;
+}
+
+.footer-sub {
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  opacity: 0.9;
 }
 
 .disclaimer {
