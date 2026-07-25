@@ -5,15 +5,15 @@
  */
 import { useMemo, useState } from "react";
 import type { CountryMeta, SchoolFeature, SchoolProperties } from "@/lib/types";
+import type { DailyClimateSeries } from "@/lib/climate";
 import {
   computeCountryKpis,
   filterSchools,
   schoolsByRegion,
-  syntheticNationalTmaxSeries,
 } from "@/lib/aggregates";
 import SchoolMap from "./SchoolMap";
 import KpiCards from "./KpiCards";
-import { RegionBarChart, TmaxLineChart } from "./Charts";
+import { CountryTmaxChart, RegionBarChart } from "./Charts";
 import SchoolTable from "./SchoolTable";
 import SchoolDetailModal from "./SchoolDetailModal";
 
@@ -21,9 +21,15 @@ interface Props {
   country: CountryMeta;
   allFeatures: SchoolFeature[];
   allSchools: SchoolProperties[];
+  dailySeries: DailyClimateSeries;
 }
 
-export default function CountryDashboard({ country, allFeatures, allSchools }: Props) {
+export default function CountryDashboard({
+  country,
+  allFeatures,
+  allSchools,
+  dailySeries,
+}: Props) {
   const [level, setLevel] = useState("todos");
   const [sector, setSector] = useState("todos");
   const [urbanRural, setUrbanRural] = useState("todos");
@@ -48,7 +54,6 @@ export default function CountryDashboard({ country, allFeatures, allSchools }: P
 
   const kpis = computeCountryKpis(filtered);
   const regionData = schoolsByRegion(filtered);
-  const lineData = syntheticNationalTmaxSeries(kpis.avgTmax, country.code);
 
   const selectedSchool = selectedId
     ? allSchools.find((s) => s.school_id === selectedId) ?? null
@@ -58,7 +63,7 @@ export default function CountryDashboard({ country, allFeatures, allSchools }: P
 
   const mapBlock = (
     <div className={`panel country-map-panel${isChile ? " country-map-panel--tall" : ""}`}>
-      <h3>Mapa de escuelas (color = severidad de calor)</h3>
+      <h3>Mapa de escuelas</h3>
       <SchoolMap
         features={filteredFeatures}
         center={country.mapCenter}
@@ -74,11 +79,15 @@ export default function CountryDashboard({ country, allFeatures, allSchools }: P
     <>
       <div className="panel">
         <h3>Escuelas por región</h3>
-        <RegionBarChart data={regionData} />
+        <RegionBarChart data={regionData} exportName={country.route} />
       </div>
-      <div className="panel">
-        <h3>Evolución Tmax nacional (agregado)</h3>
-        <TmaxLineChart data={lineData} />
+      <div className="panel country-tmax-panel">
+        <h3>Evolución Tmax nacional (promedio diario)</h3>
+        <CountryTmaxChart
+          series={dailySeries}
+          label={country.label}
+          exportName={country.route}
+        />
       </div>
     </>
   );
@@ -142,7 +151,7 @@ export default function CountryDashboard({ country, allFeatures, allSchools }: P
 
       <div className="panel">
         <h3>Tabla de escuelas ({filtered.length})</h3>
-        <SchoolTable schools={filtered} onSelect={setSelectedId} />
+        <SchoolTable schools={filtered} onSelect={setSelectedId} exportName={country.route} />
       </div>
 
       {selectedSchool && (

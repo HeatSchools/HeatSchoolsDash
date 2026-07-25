@@ -92,11 +92,23 @@ export function PieChart({ data }: { data: PieSlice[] }) {
 export function DailyTmaxChart({
   series,
   label,
+  exportName,
   animated = true,
+  showThresholdBands = false,
+  showThresholdLines = false,
+  showPointValues = false,
+  height = 165,
+  className,
 }: {
   series: DailyClimateSeries;
   label: string;
+  exportName?: string;
   animated?: boolean;
+  showThresholdBands?: boolean;
+  showThresholdLines?: boolean;
+  showPointValues?: boolean;
+  height?: number;
+  className?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -134,12 +146,96 @@ export function DailyTmaxChart({
     const gridColor = theme === "dark" ? "#2d3f54" : "#e8e4df";
     const tickColor = theme === "dark" ? "#94a3b8" : "#5c6370";
     const pointWidth = 22;
+    const thresholds = series.thresholds;
+
+    const yValues = [...sliceTmax];
+    if (thresholds) {
+      yValues.push(thresholds.p90, thresholds.p95, thresholds.p99);
+    }
+    const yPadding = showThresholdLines ? 2 : 1;
+    const yMin = Math.floor(Math.min(...yValues) - yPadding);
+    const yMax = Math.ceil(Math.max(...yValues) + yPadding);
+    const useCustomYDomain = showThresholdBands || showThresholdLines;
+
+    const drawProgress = animated ? progress : 1;
+    const visibleCount = Math.max(1, Math.ceil(rows.length * drawProgress));
+    const labeledRows = showPointValues ? rows.slice(0, visibleCount) : [];
+
+    const marks: unknown[] = [
+      Plot.gridY({ stroke: gridColor, strokeOpacity: 0.8, ticks: 7 }),
+    ];
+
+    if (showThresholdBands && thresholds) {
+      const band = [{ x1: -0.5, x2: Math.max(0.5, rows.length - 0.5) }];
+      marks.push(
+        Plot.rect(band, {
+          x1: () => -0.5,
+          x2: () => Math.max(0.5, rows.length - 0.5),
+          y1: thresholds.p90,
+          y2: yMax,
+          fill: "rgba(242,161,84,0.14)",
+        }),
+        Plot.rect(band, {
+          x1: () => -0.5,
+          x2: () => Math.max(0.5, rows.length - 0.5),
+          y1: thresholds.p95,
+          y2: yMax,
+          fill: "rgba(234,88,12,0.18)",
+        }),
+        Plot.rect(band, {
+          x1: () => -0.5,
+          x2: () => Math.max(0.5, rows.length - 0.5),
+          y1: thresholds.p99,
+          y2: yMax,
+          fill: "rgba(185,28,28,0.22)",
+        }),
+        Plot.ruleY([thresholds.p90], { stroke: "rgba(242,161,84,0.55)", strokeDasharray: "4,4" }),
+        Plot.ruleY([thresholds.p95], { stroke: "rgba(234,88,12,0.65)", strokeDasharray: "4,4" }),
+        Plot.ruleY([thresholds.p99], { stroke: "rgba(185,28,28,0.75)", strokeDasharray: "4,4" })
+      );
+    }
+
+    if (showThresholdLines && thresholds) {
+      marks.push(
+        Plot.ruleY([thresholds.p90], { stroke: "#facc15", strokeDasharray: "6,4", strokeWidth: 1.5 }),
+        Plot.ruleY([thresholds.p95], { stroke: "#f97316", strokeDasharray: "6,4", strokeWidth: 1.5 }),
+        Plot.ruleY([thresholds.p99], { stroke: "#dc2626", strokeDasharray: "6,4", strokeWidth: 1.5 })
+      );
+    }
+
+    marks.push(
+      Plot.lineY(rows, {
+        x: (_d, i) => i,
+        y: "tmax",
+        stroke,
+        strokeWidth: 1.75,
+      }),
+      Plot.dot(rows, {
+        x: (_d, i) => i,
+        y: "tmax",
+        fill: stroke,
+        r: 2.5,
+      })
+    );
+
+    if (labeledRows.length > 0) {
+      marks.push(
+        Plot.text(labeledRows, {
+          x: (_d, i) => i,
+          y: "tmax",
+          text: (d) => `${d.tmax.toFixed(1)}°`,
+          dy: -10,
+          fill: tickColor,
+          fontSize: 10,
+        })
+      );
+    }
 
     const chart = Plot.plot({
       width: Math.max(320, sliceDates.length * pointWidth),
-      height: 165,
+      height,
       marginBottom: 50,
-      marginLeft: 40,
+      marginLeft: showThresholdLines ? 52 : 42,
       marginRight: 8,
       x: {
         label: null,
@@ -150,30 +246,21 @@ export function DailyTmaxChart({
       y: {
         label: null,
         grid: true,
+        ticks: showThresholdLines ? 8 : 7,
         tickFormat: (v: number) => `${v}°`,
-        domain: Y_DOMAIN,
+        domain: useCustomYDomain ? [yMin, yMax] : Y_DOMAIN,
       },
-      marks: [
-        Plot.gridY({ stroke: gridColor, strokeOpacity: 0.8, ticks: 7 }),
-        Plot.lineY(rows, {
-          x: (_d, i) => i,
-          y: "tmax",
-          stroke,
-          strokeWidth: 1.75,
-        }),
-        Plot.dot(rows, {
-          x: (_d, i) => i,
-          y: "tmax",
-          fill: stroke,
-          r: 2,
-        }),
-      ],
+      marks: marks as Plot.Markish[],
     });
 
     chart.querySelectorAll("text").forEach((node) => {
       const el = node as SVGTextElement;
-      el.setAttribute("fill", tickColor);
-      el.setAttribute("font-size", "11");
+      if (el.getAttribute("fill") === null || el.getAttribute("fill") === "currentColor") {
+        el.setAttribute("fill", tickColor);
+      }
+      if (!el.getAttribute("font-size")) {
+        el.setAttribute("font-size", "11");
+      }
     });
 
     ref.current.append(chart);
@@ -185,16 +272,28 @@ export function DailyTmaxChart({
     }
 
     return () => chart.remove();
-  }, [series, windowEnd, theme, animated, progress]);
+  }, [
+    series,
+    windowEnd,
+    theme,
+    animated,
+    progress,
+    showThresholdBands,
+    showThresholdLines,
+    showPointValues,
+    height,
+  ]);
 
   useEffect(() => {
     const svg = ref.current?.querySelector("svg") as SVGSVGElement | null;
     applyLineDrawProgress(svg, progress);
   }, [progress]);
 
+  const slug = exportName ?? label.toLowerCase().replace(/\s+/g, "-");
+
   const exportCsv = () => {
     downloadCsv(
-      `tmax-diaria-${label.toLowerCase().replace(/\s+/g, "-")}.csv`,
+      `tmax-diaria-${slug}.csv`,
       ["fecha", "tmax_c"],
       series.date.map((d, i) => [d, series.tmax_c[i]])
     );
@@ -203,7 +302,7 @@ export function DailyTmaxChart({
   const exportPng = async () => {
     const svg = ref.current?.querySelector("svg");
     if (!svg) return;
-    await downloadSvgAsPng(svg, `tmax-diaria-${label.toLowerCase().replace(/\s+/g, "-")}.png`);
+    await downloadSvgAsPng(svg, `tmax-diaria-${slug}.png`);
   };
 
   const exportShare = () => {
@@ -211,7 +310,7 @@ export function DailyTmaxChart({
   };
 
   return (
-    <div ref={containerRef} className="daily-chart-wrap">
+    <div ref={containerRef} className={`daily-chart-wrap${className ? ` ${className}` : ""}`}>
       <ExportToolbar
         variant="block"
         onShare={exportShare}

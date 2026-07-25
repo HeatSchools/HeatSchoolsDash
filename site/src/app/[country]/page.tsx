@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import CountryDashboard from "@/components/CountryDashboard";
 import { loadSchoolsGeoJSON } from "@/lib/schools";
+import { loadCountryDailyFull } from "@/lib/summary";
 import { countryByRoute } from "@/lib/types";
 
 interface Props {
@@ -22,12 +23,14 @@ export default async function CountryPage({ params }: Props) {
 
   const geojson = loadSchoolsGeoJSON(meta.slug);
   const schools = geojson.features.map((f) => f.properties);
+  const dailySeries = loadCountryDailyFull(meta.slug);
 
   return (
     <CountryDashboard
       country={meta}
       allFeatures={geojson.features}
       allSchools={schools}
+      dailySeries={dailySeries}
     />
   );
 }

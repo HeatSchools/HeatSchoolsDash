@@ -1,5 +1,5 @@
 """
-Genera un dataset simulado de 200 escuelas por país (Chile, Colombia, Peru) para
+Genera un dataset simulado de 1000 escuelas por país (Chile, Colombia, Peru) para
 probar el dashboard de HeatSchools. TODOS los datos son ficticios: coordenadas,
 matricula, indices de temperatura y de bienestar/salud. No usar para analisis real.
 
@@ -25,7 +25,7 @@ from geo_utils import sample_near_region
 random.seed(42)
 np.random.seed(42)
 
-N_PER_COUNTRY = 200
+N_PER_COUNTRY = 1000
 DAILY_MONTHS = 24
 HIST_YEARS = 15
 
@@ -224,22 +224,29 @@ def build_country_monthly(daily_df):
     }
 
 
-def build_country_daily(daily_df, days=90):
-    """Promedio nacional diario de Tmax (últimos N días) para series en la home."""
+def build_country_daily(daily_df, days=None):
+    """Promedio nacional diario de Tmax; opcionalmente recorta a los últimos N días."""
     df = daily_df.copy()
     df["date"] = pd.to_datetime(df["date"])
     national = (
         df.groupby("date", as_index=False)["tmax_c"]
         .mean()
         .sort_values("date")
-        .tail(days)
     )
-    # Ligera variación diaria adicional sobre el promedio agregado (más realista visualmente)
+    all_vals = national["tmax_c"].values
+    thresholds = {
+        "p90": round(float(np.percentile(all_vals, 90)), 2),
+        "p95": round(float(np.percentile(all_vals, 95)), 2),
+        "p99": round(float(np.percentile(all_vals, 99)), 2),
+    }
+    if days is not None:
+        national = national.tail(days)
     noise = np.random.normal(0, 0.35, size=len(national))
     tmax = (national["tmax_c"].values + noise).round(2)
     return {
         "date": [d.strftime("%Y-%m-%d") for d in national["date"]],
         "tmax_c": tmax.tolist(),
+        "thresholds": thresholds,
     }
 
 
@@ -258,7 +265,7 @@ def main():
         schools = []
         for i in range(N_PER_COUNTRY):
             idx_counter[country] += 1
-            region = regions[i % len(regions)]
+            region = regions[int(rng.integers(0, len(regions)))]
             schools.append(make_school(country, idx_counter[country], region, rng))
         schools_df = pd.DataFrame(schools)
 
@@ -285,9 +292,13 @@ def main():
         with open(OUT_ROOT / "summary" / f"{country.lower()}_monthly.json", "w", encoding="utf-8") as f:
             json.dump({"country": country, "resolution": "monthly", **monthly}, f, ensure_ascii=False)
 
-        daily_series = build_country_daily(daily)
+        daily_series = build_country_daily(daily, days=90)
         with open(OUT_ROOT / "summary" / f"{country.lower()}_daily.json", "w", encoding="utf-8") as f:
             json.dump({"country": country, "resolution": "daily", **daily_series}, f, ensure_ascii=False)
+
+        daily_full = build_country_daily(daily, days=None)
+        with open(OUT_ROOT / "summary" / f"{country.lower()}_daily_full.json", "w", encoding="utf-8") as f:
+            json.dump({"country": country, "resolution": "daily", **daily_full}, f, ensure_ascii=False)
 
         # ---- JSON semanal historico (15 anios), un archivo por escuela ----
         hist_dir = OUT_ROOT / "historical" / country.lower()

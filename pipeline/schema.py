@@ -78,4 +78,4 @@ COORD_BOUNDS: dict[CountryCode, dict[str, tuple[float, float]]] = {
     "PE": {"lat": (-19.0, 0.5), "lon": (-84.0, -68.0)},
 }
 
-N_SCHOOLS_PER_COUNTRY = 200
+N_SCHOOLS_PER_COUNTRY = 1000

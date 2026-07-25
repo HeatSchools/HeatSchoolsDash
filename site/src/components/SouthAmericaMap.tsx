@@ -16,9 +16,16 @@ import {
   type ProjectCountryIso,
 } from "@/lib/mapStyles";
 import {
+  applyTempGridToSchoolMap,
+  clusterStrokeForTheme,
+  onMapStyleReady,
+} from "@/lib/schoolMapLayers";
+import {
   DEFAULT_TEMP_SCENARIO,
   fetchTempGrid,
   findMapLabelAnchor,
+  raiseLayersAboveHeatmap,
+  SCHOOL_POINT_LAYERS,
   syncTempGridLayer,
   type TempScenarioId,
 } from "@/lib/tempGrid";
@@ -93,11 +100,6 @@ class OsmAttributionControl implements maplibregl.IControl {
   onRemove() {}
 }
 
-/** Espera al próximo estilo cargado (nunca ejecutar en caliente tras setStyle). */
-function onStyleLoad(map: maplibregl.Map, fn: () => void) {
-  map.once("style.load", fn);
-}
-
 export default function SouthAmericaMap({
   countries,
   schoolFeatures,
@@ -134,7 +136,7 @@ export default function SouthAmericaMap({
   }
 
   function clusterStrokeColor() {
-    return themeRef.current === "dark" ? "#f0f4f8" : "#ffffff";
+    return clusterStrokeForTheme(themeRef.current);
   }
 
   function borderColor() {
@@ -334,6 +336,7 @@ export default function SouthAmericaMap({
       beforeLabels
     );
 
+    raiseLayersAboveHeatmap(map, SCHOOL_POINT_LAYERS);
     applyDimming(map, focusRef.current);
   }
 
@@ -487,7 +490,7 @@ export default function SouthAmericaMap({
         tempGridDataRef.current = data;
         const map = mapRef.current;
         if (map?.isStyleLoaded() && map.getSource("sa-countries")) {
-          syncTempGridLayer(map, data, findMapLabelAnchor(map));
+          applyTempGridToSchoolMap(map, data);
         }
       })
       .catch(console.error);
@@ -553,7 +556,7 @@ export default function SouthAmericaMap({
     const generation = ++styleGenerationRef.current;
 
     map.setStyle(getMapStyleUrl(theme), { diff: false });
-    onStyleLoad(map, () => {
+    onMapStyleReady(map, () => {
       if (generation !== styleGenerationRef.current) return;
       restoreMapState(map);
     });

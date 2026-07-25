@@ -60,9 +60,9 @@ function CsvIcon() {
 }
 
 interface Props {
-  onShare: () => void;
-  onPng: () => void;
-  onCsv: () => void;
+  onShare?: () => void;
+  onPng?: () => void;
+  onCsv?: () => void;
   className?: string;
   /** block: fila completa encima del gráfico; inline: alineado a la derecha del panel del mapa */
   variant?: "block" | "inline";
@@ -82,18 +82,24 @@ export default function ExportToolbar({
       role="toolbar"
       aria-label="Exportar visualización"
     >
-      <button type="button" className="export-btn" onClick={onShare}>
-        <ShareIcon />
-        <span>Compartir</span>
-      </button>
-      <button type="button" className="export-btn" onClick={onPng}>
-        <PngIcon />
-        <span>PNG</span>
-      </button>
-      <button type="button" className="export-btn" onClick={onCsv}>
-        <CsvIcon />
-        <span>CSV</span>
-      </button>
+      {onShare ? (
+        <button type="button" className="export-btn" onClick={onShare}>
+          <ShareIcon />
+          <span>Compartir</span>
+        </button>
+      ) : null}
+      {onPng ? (
+        <button type="button" className="export-btn" onClick={onPng}>
+          <PngIcon />
+          <span>PNG</span>
+        </button>
+      ) : null}
+      {onCsv ? (
+        <button type="button" className="export-btn" onClick={onCsv}>
+          <CsvIcon />
+          <span>CSV</span>
+        </button>
+      ) : null}
     </div>
   );
 }
