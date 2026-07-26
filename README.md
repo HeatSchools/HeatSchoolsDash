@@ -22,6 +22,45 @@ Visualizador de datos del proyecto **HeatSchools** (Wellcome Climate Impacts Awa
 - **Pipeline (mockup):** Python 3.10+, pandas, pyarrow
 - **Despliegue objetivo:** sitio 100 % estático en CDN + datos en almacenamiento de objetos
 
+## Flujo de datos (tres etapas)
+
+El proyecto conecta fuentes geoespaciales y climáticas con un visualizador estático en tres pasos. Los diagramas están en `site/public/images/pipeline/`.
+
+### Etapa 1: Adquisición
+
+![Etapa 1: Adquisición de datos](./site/public/images/pipeline/etapa-1-adquisicion.png)
+
+Dos líneas de datos convergen hacia el procesamiento:
+
+| Línea | Fuente | Contenido |
+|-------|--------|-----------|
+| **Escuelas** | Por definir (según país) | Coordenadas, nivel, sector y matrícula por establecimiento |
+| **Clima** | Copernicus CDS (ERA5-Land) + Google Earth Engine | Series históricas de temperatura (5-25 km, diaria/mensual) y proyecciones CMIP6 NEX-GDDP (SSP2-4.5, SSP5-8.5) |
+
+### Etapa 2: Procesamiento
+
+![Etapa 2: Procesamiento](./site/public/images/pipeline/etapa-2-procesamiento.png)
+
+| Línea | Pasos | Salida |
+|-------|-------|--------|
+| **Geoespacial** | Georeferenciación: validación, proyección y asignación región/comuna (GADM) | Puntos escolares normalizados |
+| **Tabular / climática** | Limpieza de esquema → imputación de gaps → índices (PET, WBGT, TX90p, WSDI, días de calor) | Series e indicadores por escuela |
+| **Unión** | Join espacial + temporal (punto × variable × fecha) | **GeoJSON**, **Parquet** (24 meses), **JSON** (15 años) |
+
+Pipeline implementado en `pipeline/` con Python, pandas, pyarrow y DuckDB.
+
+### Etapa 3: Visualización
+
+![Etapa 3: Visualización](./site/public/images/pipeline/etapa-3-visualizacion.png)
+
+| Componente | Tecnología | Función |
+|------------|------------|---------|
+| **Hosting** | GitHub Pages, Vercel, Netlify o Cloudflare Pages | Sitio 100 % estático, sin backend |
+| **Framework** | Next.js (static export) | Build del dashboard |
+| **Home** | KPIs + tarjetas por país | Panorama regional |
+| **País** | MapLibre GL JS + Observable Plot | Mapas, gráficos, filtros y tabla |
+| **Detalle escuela** | DuckDB-WASM | Consulta Parquet e históricos JSON en el navegador |
+
 ## Estructura del repositorio
 
 ```
@@ -32,7 +71,10 @@ HeatSchoolsDash/
 │   ├── requirements.txt
 │   └── tests/
 ├── site/                  # Aplicación Next.js
-│   ├── public/data/       # GeoJSON, Parquet, JSON históricos
+│   ├── public/
+│   │   ├── data/          # GeoJSON, Parquet, JSON históricos
+│   │   └── images/
+│   │       └── pipeline/  # Diagramas del flujo de datos (3 etapas)
 │   └── src/
 ├── scripts/               # Atajos para desarrollo local
 └── .github/workflows/
@@ -40,8 +82,8 @@ HeatSchoolsDash/
 
 ## Requisitos
 
-- **Node.js 18+** — dashboard
-- **Python 3.10+** — regenerar datos simulados (opcional)
+- **Node.js 18+** (dashboard)
+- **Python 3.10+** (regenerar datos simulados, opcional)
 
 ## Cómo correr el dashboard
 
@@ -88,4 +130,4 @@ pytest tests/
 
 ## Licencia
 
-MIT — ver [LICENSE](LICENSE).
+MIT. Ver [LICENSE](LICENSE).

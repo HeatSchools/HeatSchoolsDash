@@ -1,4 +1,5 @@
 import Image from "next/image";
+import PipelineFigure from "@/components/PipelineFigure";
 import TeamSocialLinks from "@/components/TeamSocialLinks";
 import teamData from "@/data/team.json";
 
@@ -117,35 +118,91 @@ export default function AcercaPage() {
       <section className="panel">
         <h2>Metodología</h2>
         <p>
-          El visualizador integra datos geoespaciales, series climáticas y métricas de bienestar
-          en un flujo reproducible orientado a la exploración y la exportación de evidencia.
+          El dashboard sigue un flujo de datos en tres etapas: adquisición, procesamiento y
+          visualización, que conecta fuentes geoespaciales y climáticas con un sitio estático
+          interactivo, sin servidor de aplicación.
         </p>
+
+        <p className="acerca-objectives-label">Flujo de datos en tres etapas</p>
+        <div className="acerca-pipeline">
+          <article className="acerca-pipeline-stage">
+            <h3>Etapa 1: Adquisición de datos</h3>
+            <p>
+              Se integran dos líneas de información. Por un lado, <strong>datos de escuela</strong>:
+              coordenadas, nivel, sector y matrícula por establecimiento (fuente por definir según
+              país). Por otro, <strong>datos climáticos</strong> desde Copernicus CDS (ERA5-Land) y
+              Google Earth Engine: series históricas de temperatura (resolución 5-25 km, diaria o
+              mensual) y proyecciones CMIP6 NEX-GDDP (escenarios SSP2-4.5 y SSP5-8.5).
+            </p>
+            <PipelineFigure
+              src="/images/pipeline/etapa-1-adquisicion.png"
+              alt="Diagrama etapa 1: adquisición de datos de escuela y datos climáticos"
+              width={3767}
+              height={1961}
+              caption="Fuentes de escuelas y clima que alimentan el procesamiento."
+            />
+          </article>
+
+          <article className="acerca-pipeline-stage">
+            <h3>Etapa 2: Procesamiento</h3>
+            <p>
+              Dos líneas de trabajo convergen en productos analíticos. La <strong>línea
+              geoespacial</strong> valida y proyecta los puntos escolares y asigna región y comuna
+              (GADM). La <strong>línea tabular/climática</strong> normaliza esquemas, imputa gaps en
+              series temporales y calcula índices (PET, WBGT, TX90p, WSDI, días de calor). La{" "}
+              <strong>unión de capas</strong> realiza un join espacial y temporal (punto × variable ×
+              fecha), generando GeoJSON, Parquet (24 meses) e históricos JSON (15 años).
+            </p>
+            <PipelineFigure
+              src="/images/pipeline/etapa-2-procesamiento.png"
+              alt="Diagrama etapa 2: georeferenciación, limpieza, índices climáticos y unión de capas"
+              width={4212}
+              height={1760}
+              caption="Pipeline Python + DuckDB: de datos crudos a artefactos listos para el sitio."
+            />
+          </article>
+
+          <article className="acerca-pipeline-stage">
+            <h3>Etapa 3: Visualización</h3>
+            <p>
+              Los productos finales se publican junto al sitio en hosting estático (GitHub Pages,
+              Vercel, Netlify o Cloudflare Pages). <strong>Next.js</strong> (export estático) arma
+              tres niveles de exploración: <strong>Home</strong> con KPIs globales y tarjetas por
+              país; <strong>País</strong> con MapLibre GL JS, Observable Plot, filtros y tabla; y{" "}
+              <strong>Detalle escolar</strong> con consultas DuckDB-WASM sobre Parquet e históricos
+              JSON directamente en el navegador.
+            </p>
+            <PipelineFigure
+              src="/images/pipeline/etapa-3-visualizacion.png"
+              alt="Diagrama etapa 3: Next.js estático, pestañas Home, País y Detalle escuela"
+              width={4257}
+              height={1938}
+              caption="Arquitectura del visualizador: 100 % estático, consultas en el cliente."
+            />
+          </article>
+        </div>
+
+        <p className="acerca-objectives-label">Tecnologías clave</p>
         <ul className="acerca-list acerca-methods">
           <li>
-            <strong>Datos geoespaciales:</strong> escuelas en GeoJSON con coordenadas, atributos
-            administrativos y variables de exposición al calor; mapas con MapLibre GL JS y
-            agrupación (clustering) de puntos.
+            <strong>Pipeline:</strong> Python, pandas, pyarrow y DuckDB (
+            <code>pipeline/simulate_data.py</code> en la versión demo).
           </li>
           <li>
-            <strong>Agregaciones:</strong> indicadores globales y por país (conteos, promedios de
-            Tmax, bienestar, salud y días calurosos) calculados en el build del sitio estático.
+            <strong>Mapas:</strong> MapLibre GL JS con clustering, heatmaps de temperatura y capas
+            administrativas.
           </li>
           <li>
-            <strong>Series temporales:</strong> Tmax diaria simulada por país, visualizada con
-            Observable Plot y ventanas deslizantes para lectura dinámica.
+            <strong>Gráficos:</strong> Observable Plot para series Tmax, percentiles y ventanas
+            deslizantes.
           </li>
           <li>
-            <strong>Detalle escolar:</strong> consulta bajo demanda con DuckDB-WASM sobre
-            archivos Parquet en el navegador, sin servidor de aplicación.
+            <strong>Consultas locales:</strong> DuckDB-WASM + httpfs sobre Parquet vía HTTP Range
+            Requests.
           </li>
           <li>
-            <strong>Pipeline de datos:</strong> generación y validación de datos ficticios en
-            Python (<code>pipeline/simulate_data.py</code>), con esquema compartido y pruebas
-            automatizadas.
-          </li>
-          <li>
-            <strong>Publicación:</strong> export estático con Next.js para despliegue en GitHub
-            Pages o CDN, con temas claro/oscuro y exportación Compartir / PNG / CSV.
+            <strong>Publicación:</strong> export estático Next.js, temas claro/oscuro y exportación
+            Compartir / PNG / CSV.
           </li>
         </ul>
         <div className="acerca-repo-wrap">

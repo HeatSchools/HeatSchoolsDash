@@ -1075,6 +1075,128 @@ a:hover {
   border-radius: 4px;
 }
 
+.acerca-pipeline {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.acerca-pipeline-stage h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  color: var(--color-text);
+}
+
+.acerca-pipeline-stage > p {
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+  margin-bottom: 0.85rem;
+}
+
+.acerca-pipeline-figure {
+  margin: 0 auto;
+  max-width: min(960px, 100%);
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.acerca-pipeline-img-btn {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: zoom-in;
+  line-height: 0;
+}
+
+.acerca-pipeline-img-btn:hover .acerca-pipeline-img {
+  opacity: 0.92;
+}
+
+.acerca-pipeline-img-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.acerca-pipeline-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  transition: opacity 0.15s ease;
+}
+
+.acerca-pipeline-figure figcaption {
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+
+.acerca-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.acerca-lightbox {
+  position: relative;
+  width: min(1200px, 96vw);
+  max-height: 92vh;
+  overflow: auto;
+  border-radius: calc(var(--radius) + 2px);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+}
+
+.acerca-lightbox-close {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-surface-soft);
+  color: var(--color-text);
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.acerca-lightbox-close:hover {
+  background: var(--color-bg);
+}
+
+.acerca-lightbox-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: var(--color-surface);
+}
+
+.acerca-lightbox-caption {
+  margin: 0;
+  padding: 0.75rem 1rem 1rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+}
+
 .explore-btn {
   margin-top: auto;
   align-self: flex-start;
