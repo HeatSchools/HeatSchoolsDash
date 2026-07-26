@@ -10,7 +10,7 @@ type TeamMember = {
   degree: string | null;
   role: string;
   affiliation: string | string[];
-  photo: string;
+  photo: string | null;
   linkedin: string | null;
   orcid: string | null;
   github: string | null;
@@ -18,6 +18,15 @@ type TeamMember = {
 
 function formatMemberName(member: TeamMember): string {
   return member.degree ? `${member.degree} ${member.name}` : member.name;
+}
+
+function memberInitials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
 }
 
 function formatAffiliations(affiliation: string | string[]): string[] {
@@ -40,20 +49,33 @@ export default function AcercaPage() {
         Latina y catalizar acciones para proteger la salud, el bienestar y el aprendizaje del
         estudiantado en un clima cambiante.
       </p>
-
+      <p className="acerca-objectives-label">Las líneas del proyecto son:</p>
+      <ul className="acerca-list">
+        <li>WP1: Línea de base de políticas existentes sobre calor y escuelas en la región.</li>
+        <li>WP2.1: Mapeo de la exposición al calor en entornos escolares mediante datos ambientales y de teledetección.</li>
+        <li>WP2.2/WP3: Estudio de cohorte (calor, cognición, bienestar) e investigación cualitativa.</li>
+        <li>WP4: Comunicación de evidencia a comunidades escolares y tomadores de decisión.</li>
+        <li>WP5: Co-desarrollo de recomendaciones de política pública.</li>
+      </ul>
       <section className="panel">
         <h2>Equipo</h2>
         <div className="team-grid">
           {team.map((member) => (
             <article key={member.id} className="team-card">
               <div className="team-photo-wrap">
-                <Image
-                  src={member.photo}
-                  alt={`Fotografía de ${formatMemberName(member)}`}
-                  width={330}
-                  height={330}
-                  className="team-photo"
-                />
+                {member.photo ? (
+                  <Image
+                    src={member.photo}
+                    alt={`Fotografía de ${formatMemberName(member)}`}
+                    width={330}
+                    height={330}
+                    className="team-photo"
+                  />
+                ) : (
+                  <span className="team-photo-placeholder" aria-hidden="true">
+                    {memberInitials(member.name)}
+                  </span>
+                )}
               </div>
               <h3 className="team-name">{formatMemberName(member)}</h3>
               <p className="team-role">{member.role}</p>
