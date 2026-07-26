@@ -929,20 +929,28 @@ a:hover {
   font-style: italic;
 }
 
-.acerca-repo-wrap {
+.acerca-panel-header {
   display: flex;
-  justify-content: center;
-  margin-top: 1.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.acerca-panel-header h2 {
+  margin-bottom: 0;
 }
 
 .acerca-repo-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  padding: 0.75rem 1.5rem;
+  padding: 0.55rem 1.1rem;
   border-radius: var(--radius);
   font-weight: 600;
-  font-size: 0.92rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
   color: #fff;
   background: var(--gradient-heat-bg);
   box-shadow: 0 4px 14px rgba(185, 28, 28, 0.22);
