@@ -169,6 +169,8 @@ docs/_build/
 site/node_modules/
 site/.next/
 site/out/
+site/.wrangler/
+site/.dev.vars
 
 # macOS
 .DS_Store

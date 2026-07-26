@@ -10,7 +10,7 @@ Visualizador de datos del proyecto **HeatSchools** (Wellcome Climate Impacts Awa
 |------|-------------|
 | **Pipeline** (`pipeline/`) | Python + DuckDB para procesamiento de datos climáticos y exportación a GeoJSON, Parquet e históricos JSON |
 | **Datos** (`site/public/data/`) | Artefactos estáticos servidos al navegador (mockup versionado en git; en producción irán a un bucket de objetos) |
-| **Sitio** (`site/`) | Dashboard estático (Next.js export) desplegable en GitHub Pages, Netlify o Vercel |
+| **Sitio** (`site/`) | Dashboard estático (Next.js export) desplegable en Cloudflare Workers, GitHub Pages, Netlify o Vercel |
 | **CI/CD** (`.github/workflows/`) | GitHub Actions para actualización automática del pipeline (placeholder hasta conectar fuentes reales) |
 
 ## Tecnología
@@ -55,7 +55,7 @@ Pipeline implementado en `pipeline/` con Python, pandas, pyarrow y DuckDB.
 
 | Componente | Tecnología | Función |
 |------------|------------|---------|
-| **Hosting** | GitHub Pages, Vercel, Netlify o Cloudflare Pages | Sitio 100 % estático, sin backend |
+| **Hosting** | Cloudflare Workers (assets estáticos), GitHub Pages, Vercel o Netlify | Sitio 100 % estático, sin backend |
 | **Framework** | Next.js (static export) | Build del dashboard |
 | **Home** | KPIs + tarjetas por país | Panorama regional |
 | **País** | MapLibre GL JS + Observable Plot | Mapas, gráficos, filtros y tabla |
@@ -75,6 +75,7 @@ HeatSchoolsDash/
 │   │   ├── data/          # GeoJSON, Parquet, JSON históricos
 │   │   └── images/
 │   │       └── pipeline/  # Diagramas del flujo de datos (3 etapas)
+│   ├── wrangler.toml      # Deploy Cloudflare Workers (assets estáticos → out/)
 │   └── src/
 ├── scripts/               # Atajos para desarrollo local
 └── .github/workflows/
@@ -122,11 +123,45 @@ python simulate_data.py
 pytest tests/
 ```
 
-## Producción (futuro)
+## Despliegue en Cloudflare Workers
+
+El sitio usa **export estático** (`output: "export"`) y se publica como **assets estáticos** de un Worker, sin OpenNext ni SSR.
+
+### Configuración en el dashboard (Workers & Pages → Settings → Build)
+
+| Campo | Valor |
+|-------|--------|
+| **Root directory** | `site` |
+| **Build command** | `npm run build` |
+| **Deploy command** | `npx wrangler deploy` |
+| **Branch (producción)** | `main` |
+
+Opcional: variable de entorno `NODE_VERSION` = `20`.
+
+El archivo `site/wrangler.toml` define el Worker (`mockup-hsd`) y apunta a la carpeta `out/` generada por `next build`. Wrangler no debe auto-detectar OpenNext: la config explícita evita ese camino.
+
+### Deploy local (opcional)
+
+Requiere [Wrangler](https://developers.cloudflare.com/workers/wrangler/) autenticado (`npx wrangler login`):
+
+```bash
+cd site
+npm install
+npm run deploy
+```
+
+Preview local del Worker con los assets compilados:
+
+```bash
+cd site
+npm run preview:worker
+```
+
+### Producción (futuro)
 
 1. GitHub Actions ejecuta el pipeline y publica datos a Cloudflare R2 (u otro bucket).
 2. El sitio estático apunta a URLs del bucket para Parquet y GeoJSON.
-3. GitHub Pages (o similar) sirve la carpeta `out/` generada por `next build`.
+3. Cloudflare Workers sirve la carpeta `out/` generada por `next build` (vía `wrangler deploy`).
 
 ## Licencia
 

@@ -1,0 +1,7 @@
+# Cloudflare Workers: sirve el export estático de Next.js (carpeta out/).
+# No usa OpenNext ni SSR; ver README sección "Despliegue en Cloudflare".
+name = "mockup-hsd"
+compatibility_date = "2024-09-23"
+
+[assets]
+directory = "out"
