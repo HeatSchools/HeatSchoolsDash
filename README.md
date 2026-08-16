@@ -131,12 +131,22 @@ El sitio usa **export estático** (`output: "export"`) y se publica como **asset
 
 | Campo | Valor |
 |-------|--------|
-| **Root directory** | `site` |
-| **Build command** | `npm run build` |
+| **Root directory** | `site` (sin barra inicial; **no** `/site`) |
+| **Build command** | `npm ci && npm run build` |
 | **Deploy command** | `npx wrangler deploy` |
 | **Branch (producción)** | `main` |
 
-Opcional: variable de entorno `NODE_VERSION` = `20`.
+Variable de entorno recomendada: `NODE_VERSION` = `20`.
+
+#### Si el deploy falla con “Could not detect a directory containing static files”
+
+Ese error indica que Wrangler se ejecutó **fuera** de `site/` (no encontró `wrangler.toml` ni la carpeta `out/`). Suele deberse a:
+
+1. **Root directory mal escrito** — debe ser `site`, no `/site`.
+2. **Build no ejecutado** — el log debe mostrar `npm run build` antes de `wrangler deploy`.
+3. **Node no detectado** — agrega la variable `NODE_VERSION=20` en Settings → Variables.
+
+Tras corregir, usa **Retry deployment** o haz un push vacío a `main`.
 
 El archivo `site/wrangler.toml` define el Worker (`mockup-hsd`) y apunta a la carpeta `out/` generada por `next build`. Wrangler no debe auto-detectar OpenNext: la config explícita evita ese camino.
 
