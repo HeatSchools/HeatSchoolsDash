@@ -2,7 +2,7 @@
 
 Visualizador de datos del proyecto **HeatSchools** (Wellcome Climate Impacts Award): exposición al calor extremo en escuelas de Chile, Colombia y Perú.
 
-> **Datos de demostración:** la muestra actual (600 escuelas ficticias) existe solo para desarrollar y validar el dashboard. No usar para análisis real.
+> **Datos de preliminares:** se agregan datos georefereciados de escuelas. Sin embargo, los datos de temperatura siguen siendo simulaciones. 
 
 ## Infraestructura
 
