@@ -3,7 +3,7 @@
 /**
  * Vista principal de exploración por país: mapa, filtros, KPIs, gráficos y tabla.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CountryMeta, SchoolFeature, SchoolProperties } from "@/lib/types";
 import type { DailyClimateSeries } from "@/lib/climate";
 import {
@@ -11,6 +11,7 @@ import {
   filterSchools,
   schoolsByRegion,
 } from "@/lib/aggregates";
+import { fetchCountryDashboardData } from "@/lib/dataClient";
 import SchoolMap from "./SchoolMap";
 import KpiCards from "./KpiCards";
 import { CountryTmaxChart, RegionBarChart } from "./Charts";
@@ -19,21 +20,43 @@ import SchoolDetailModal from "./SchoolDetailModal";
 
 interface Props {
   country: CountryMeta;
-  mapFeatures: SchoolFeature[];
-  allSchools: SchoolProperties[];
-  dailySeries: DailyClimateSeries;
 }
 
-export default function CountryDashboard({
-  country,
-  mapFeatures,
-  allSchools,
-  dailySeries,
-}: Props) {
+export default function CountryDashboard({ country }: Props) {
+  const [mapFeatures, setMapFeatures] = useState<SchoolFeature[]>([]);
+  const [allSchools, setAllSchools] = useState<SchoolProperties[]>([]);
+  const [dailySeries, setDailySeries] = useState<DailyClimateSeries | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [level, setLevel] = useState("todos");
   const [sector, setSector] = useState("todos");
   const [urbanRural, setUrbanRural] = useState("todos");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    fetchCountryDashboardData(country.slug)
+      .then((data) => {
+        if (cancelled) return;
+        setMapFeatures(data.mapFeatures);
+        setAllSchools(data.schools);
+        setDailySeries(data.dailySeries);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : "Error al cargar datos");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [country.slug]);
 
   const filtered = useMemo(
     () =>
@@ -53,6 +76,24 @@ export default function CountryDashboard({
     : null;
 
   const isChile = country.code === "CL";
+
+  if (loading) {
+    return (
+      <div className="container">
+        <div className="loading">Cargando datos de {country.label}…</div>
+      </div>
+    );
+  }
+
+  if (error || !dailySeries) {
+    return (
+      <div className="container">
+        <div className="loading" style={{ color: "var(--color-accent)" }}>
+          {error ?? "No se pudieron cargar los datos"}
+        </div>
+      </div>
+    );
+  }
 
   const mapBlock = (
     <div className={`panel country-map-panel${isChile ? " country-map-panel--tall" : ""}`}>

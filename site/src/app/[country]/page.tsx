@@ -1,7 +1,5 @@
 import { notFound } from "next/navigation";
 import CountryDashboard from "@/components/CountryDashboard";
-import { loadSchoolsGeoJSON, loadSchoolMapGeoJSON } from "@/lib/schools";
-import { loadCountryDailyFull } from "@/lib/summary";
 import { countryByRoute } from "@/lib/types";
 
 interface Props {
@@ -10,7 +8,7 @@ interface Props {
 
 /**
  * Página dinámica por país (/chile, /colombia, /peru).
- * Generada estáticamente en build time.
+ * Los datos se cargan en el cliente desde /data/ para mantener el HTML estático liviano.
  */
 export function generateStaticParams() {
   return [{ country: "chile" }, { country: "colombia" }, { country: "peru" }];
@@ -21,17 +19,5 @@ export default async function CountryPage({ params }: Props) {
   const meta = countryByRoute(route);
   if (!meta) notFound();
 
-  const geojson = loadSchoolsGeoJSON(meta.slug);
-  const mapGeojson = loadSchoolMapGeoJSON(meta.slug);
-  const schools = geojson.features.map((f) => f.properties);
-  const dailySeries = loadCountryDailyFull(meta.slug);
-
-  return (
-    <CountryDashboard
-      country={meta}
-      mapFeatures={mapGeojson.features}
-      allSchools={schools}
-      dailySeries={dailySeries}
-    />
-  );
+  return <CountryDashboard country={meta} />;
 }

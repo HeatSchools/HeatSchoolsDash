@@ -148,7 +148,7 @@ Ese error indica que Wrangler se ejecutó **fuera** de `site/` (no encontró `wr
 
 Tras corregir, usa **Retry deployment** o haz un push vacío a `main`.
 
-El archivo `site/wrangler.toml` define el Worker (`mockup-hsd`) y apunta a la carpeta `out/` generada por `next build`. Wrangler no debe auto-detectar OpenNext: la config explícita evita ese camino.
+El sitio carga los datos en el navegador vía `fetch` desde `/data/` (GeoJSON comprimido en `schools-map/*.geojson.gz`). Así el HTML exportado se mantiene liviano y cumple el límite de 25 MiB por asset en Cloudflare Workers.
 
 ### Deploy local (opcional)
 

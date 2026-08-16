@@ -1,8 +1,8 @@
 """
-Convierte los CSV georeferenciados de escuelas en GeoJSON para la capa de mapa.
+Convierte los CSV georeferenciados de escuelas en GeoJSON comprimido para la capa de mapa.
 
 Entrada: pipeline/source/geoschool-2026/{CL,CO,PE}-geoschool-2026.csv
-Salida:  site/public/data/schools-map/{cl,co,pe}.geojson
+Salida:  site/public/data/schools-map/{cl,co,pe}.geojson.gz
 
 Solo incluye escuelas con lat/lon válidos. Los paneles del dashboard siguen
 usando los GeoJSON simulados en site/public/data/schools/.
@@ -10,6 +10,7 @@ usando los GeoJSON simulados en site/public/data/schools/.
 from __future__ import annotations
 
 import csv
+import gzip
 import json
 from pathlib import Path
 
@@ -90,8 +91,13 @@ def main() -> None:
 
     for country_code, slug in COUNTRIES.items():
         geojson = csv_to_geojson(country_code, slug)
-        out_path = OUT_DIR / f"{slug}.geojson"
-        out_path.write_text(json.dumps(geojson, ensure_ascii=False), encoding="utf-8")
+        out_path = OUT_DIR / f"{slug}.geojson.gz"
+        payload = json.dumps(geojson, ensure_ascii=False).encode("utf-8")
+        with gzip.open(out_path, "wb") as handle:
+            handle.write(payload)
+        legacy_path = OUT_DIR / f"{slug}.geojson"
+        if legacy_path.exists():
+            legacy_path.unlink()
         summary[slug] = len(geojson["features"])
         print(f"{slug}: {summary[slug]} escuelas -> {out_path.relative_to(REPO_ROOT)}")
 

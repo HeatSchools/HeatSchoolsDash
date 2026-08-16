@@ -1,10 +1,10 @@
 /**
- * Carga de GeoJSON de escuelas en tiempo de compilación (build estático).
- * Paso 3: la capa de mapa y KPIs se alimentan solo de estos archivos resumen;
- * no se usa DuckDB-WASM en home ni en páginas de país.
+ * Carga de GeoJSON en build time (tests y scripts del pipeline).
+ * Las páginas del sitio cargan datos en el cliente vía @/lib/dataClient.
  */
 import fs from "fs";
 import path from "path";
+import { gunzipSync } from "zlib";
 import type { CountryCode, CountrySlug, SchoolsGeoJSON, SchoolProperties } from "./types";
 import { COUNTRIES } from "./types";
 
@@ -17,8 +17,13 @@ export function loadSchoolsGeoJSON(slug: CountrySlug): SchoolsGeoJSON {
   return JSON.parse(raw) as SchoolsGeoJSON;
 }
 
-/** GeoJSON real georeferenciado — solo capa de mapa (sin datos simulados de clima). */
+/** GeoJSON real georeferenciado — solo capa de mapa (archivo legacy sin comprimir). */
 export function loadSchoolMapGeoJSON(slug: CountrySlug): SchoolsGeoJSON {
+  const gzPath = path.join(MAP_DATA_DIR, `${slug}.geojson.gz`);
+  if (fs.existsSync(gzPath)) {
+    const raw = gunzipSync(fs.readFileSync(gzPath)).toString("utf-8");
+    return JSON.parse(raw) as SchoolsGeoJSON;
+  }
   const filePath = path.join(MAP_DATA_DIR, `${slug}.geojson`);
   const raw = fs.readFileSync(filePath, "utf-8");
   return JSON.parse(raw) as SchoolsGeoJSON;
