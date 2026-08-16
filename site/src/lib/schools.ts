@@ -9,11 +9,28 @@ import type { CountryCode, CountrySlug, SchoolsGeoJSON, SchoolProperties } from 
 import { COUNTRIES } from "./types";
 
 const DATA_DIR = path.join(process.cwd(), "public", "data", "schools");
+const MAP_DATA_DIR = path.join(process.cwd(), "public", "data", "schools-map");
 
 export function loadSchoolsGeoJSON(slug: CountrySlug): SchoolsGeoJSON {
   const filePath = path.join(DATA_DIR, `${slug}.geojson`);
   const raw = fs.readFileSync(filePath, "utf-8");
   return JSON.parse(raw) as SchoolsGeoJSON;
+}
+
+/** GeoJSON real georeferenciado — solo capa de mapa (sin datos simulados de clima). */
+export function loadSchoolMapGeoJSON(slug: CountrySlug): SchoolsGeoJSON {
+  const filePath = path.join(MAP_DATA_DIR, `${slug}.geojson`);
+  const raw = fs.readFileSync(filePath, "utf-8");
+  return JSON.parse(raw) as SchoolsGeoJSON;
+}
+
+export function loadAllSchoolMapFeatures() {
+  return COUNTRIES.flatMap((c) => loadSchoolMapGeoJSON(c.slug).features);
+}
+
+export function loadCountryMapFeatures(code: CountryCode) {
+  const slug = COUNTRIES.find((c) => c.code === code)!.slug;
+  return loadSchoolMapGeoJSON(slug).features;
 }
 
 export function loadAllSchools(): SchoolProperties[] {

@@ -19,14 +19,14 @@ import SchoolDetailModal from "./SchoolDetailModal";
 
 interface Props {
   country: CountryMeta;
-  allFeatures: SchoolFeature[];
+  mapFeatures: SchoolFeature[];
   allSchools: SchoolProperties[];
   dailySeries: DailyClimateSeries;
 }
 
 export default function CountryDashboard({
   country,
-  allFeatures,
+  mapFeatures,
   allSchools,
   dailySeries,
 }: Props) {
@@ -45,13 +45,6 @@ export default function CountryDashboard({
     [allSchools, level, sector, urbanRural]
   );
 
-  const filteredIds = useMemo(() => new Set(filtered.map((s) => s.school_id)), [filtered]);
-
-  const filteredFeatures = useMemo(
-    () => allFeatures.filter((f) => filteredIds.has(f.properties.school_id)),
-    [allFeatures, filteredIds]
-  );
-
   const kpis = computeCountryKpis(filtered);
   const regionData = schoolsByRegion(filtered);
 
@@ -65,7 +58,7 @@ export default function CountryDashboard({
     <div className={`panel country-map-panel${isChile ? " country-map-panel--tall" : ""}`}>
       <h3>Mapa de escuelas</h3>
       <SchoolMap
-        features={filteredFeatures}
+        features={mapFeatures}
         center={country.mapCenter}
         zoom={country.mapZoom}
         onSchoolClick={setSelectedId}

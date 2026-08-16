@@ -1,12 +1,4 @@
 import type maplibregl from "maplibre-gl";
-import {
-  findMapLabelAnchor,
-  raiseLayersAboveHeatmap,
-  SCHOOL_POINT_LAYERS,
-  syncTempGridLayer,
-  TEMP_GRID_LAYER,
-  TEMP_GRID_SOURCE,
-} from "./tempGrid";
 
 export function clusterStrokeForTheme(theme: "light" | "dark"): string {
   return theme === "dark" ? "#f0f4f8" : "#ffffff";
@@ -27,31 +19,30 @@ export function onMapStyleReady(map: maplibregl.Map, fn: () => void) {
 }
 
 export function removeSchoolMapContent(map: maplibregl.Map) {
-  for (const layerId of [...SCHOOL_POINT_LAYERS, TEMP_GRID_LAYER]) {
+  for (const layerId of ["school-cluster-count", "school-points", "school-clusters"] as const) {
     if (map.getLayer(layerId)) map.removeLayer(layerId);
   }
-  for (const sourceId of [TEMP_GRID_SOURCE, "schools"] as const) {
-    if (map.getSource(sourceId)) map.removeSource(sourceId);
-  }
+  if (map.getSource("schools")) map.removeSource("schools");
 }
 
-/** Capas de escuelas idénticas a la home + heatmap opcional. */
+function findMapLabelAnchor(map: maplibregl.Map): string | undefined {
+  const style = map.getStyle();
+  if (!style?.layers) return undefined;
+  return style.layers.find((layer) => layer.type === "symbol" && layer.layout?.["text-field"])?.id;
+}
+
+/** Capas de escuelas con clustering. */
 export function installSchoolMapContent(
   map: maplibregl.Map,
   options: {
     schools: GeoJSON.FeatureCollection;
     theme: "light" | "dark";
-    tempGrid?: GeoJSON.FeatureCollection | null;
   }
 ) {
   removeSchoolMapContent(map);
 
   const beforeLabels = findMapLabelAnchor(map);
   const clusterStroke = clusterStrokeForTheme(options.theme);
-
-  if (options.tempGrid) {
-    syncTempGridLayer(map, options.tempGrid, beforeLabels);
-  }
 
   map.addSource("schools", {
     type: "geojson",
@@ -109,15 +100,4 @@ export function installSchoolMapContent(
     },
     beforeLabels
   );
-
-  raiseLayersAboveHeatmap(map, SCHOOL_POINT_LAYERS);
-}
-
-export function applyTempGridToSchoolMap(
-  map: maplibregl.Map,
-  tempGrid: GeoJSON.FeatureCollection
-) {
-  if (!map.getSource("schools")) return;
-  syncTempGridLayer(map, tempGrid, findMapLabelAnchor(map));
-  raiseLayersAboveHeatmap(map, SCHOOL_POINT_LAYERS);
 }

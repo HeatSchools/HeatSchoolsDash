@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Mapa MapLibre por país — mismo contenido que la home (heatmap + escuelas).
+ * Mapa MapLibre por país — escuelas georeferenciadas reales.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
@@ -9,14 +9,8 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { SchoolFeature } from "@/lib/types";
 import { getMapStyleUrl } from "@/lib/mapStyles";
 import { downloadCsv, downloadPng, shareLink } from "@/lib/export";
-import {
-  applyTempGridToSchoolMap,
-  installSchoolMapContent,
-  onMapStyleReady,
-} from "@/lib/schoolMapLayers";
-import { DEFAULT_TEMP_SCENARIO, fetchTempGrid, type TempScenarioId } from "@/lib/tempGrid";
+import { installSchoolMapContent, onMapStyleReady } from "@/lib/schoolMapLayers";
 import { useTheme } from "./ThemeProvider";
-import TempScenarioFilter from "./TempScenarioFilter";
 import ExportToolbar from "./ExportToolbar";
 
 const POPUP_FADE_MS = 220;
@@ -53,7 +47,6 @@ export default function SchoolMap({
   const mapRef = useRef<maplibregl.Map | null>(null);
   const geojsonRef = useRef(buildGeoJSON(features));
   const onClickRef = useRef(onSchoolClick);
-  const tempGridDataRef = useRef<GeoJSON.FeatureCollection | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const themeRef = useRef<"light" | "dark">("light");
   const mapThemeRef = useRef<"light" | "dark" | null>(null);
@@ -68,7 +61,6 @@ export default function SchoolMap({
     mouseleaveClusters?: () => void;
   }>({});
   const [mapReady, setMapReady] = useState(false);
-  const [tempScenario, setTempScenario] = useState<TempScenarioId>(DEFAULT_TEMP_SCENARIO);
   const { theme, mounted } = useTheme();
 
   onClickRef.current = onSchoolClick;
@@ -86,26 +78,26 @@ export default function SchoolMap({
   const exportMapCsv = useCallback(() => {
     downloadCsv(
       `escuelas-${exportName}.csv`,
-      ["school_id", "country", "lon", "lat", "tmax_avg_c"],
+      ["school_id", "country", "lon", "lat", "admin1", "admin2"],
       featuresRef.current.map((f) => [
         f.properties.school_id,
         f.properties.country,
         f.geometry.coordinates[0],
         f.geometry.coordinates[1],
-        f.properties.tmax_avg_c,
+        f.properties.admin1,
+        f.properties.admin2,
       ])
     );
   }, [exportName]);
 
   const exportMapShare = useCallback(() => {
-    void shareLink(`Mapa HeatSchools · ${exportName}`, "Mapa de escuelas con capa de temperatura.");
+    void shareLink(`Mapa HeatSchools · ${exportName}`, "Mapa de escuelas georeferenciadas.");
   }, [exportName]);
 
   function restoreMapState(map: maplibregl.Map) {
     installSchoolMapContent(map, {
       schools: geojsonRef.current,
       theme: themeRef.current,
-      tempGrid: tempGridDataRef.current,
     });
     bindSchoolInteractions(map);
   }
@@ -132,12 +124,27 @@ export default function SchoolMap({
   ) {
     const name = String(props.school_name ?? "Escuela");
     const admin1 = String(props.admin1 ?? "—");
-    const level = String(props.level ?? "—");
-    const tmax = Number(props.tmax_avg_c ?? 0);
-    const wellbeing = Number(props.wellbeing_score ?? 0);
-    const health = Number(props.health_index ?? 0);
-    const enrollment = Number(props.enrollment ?? 0);
+    const admin2 = String(props.admin2 ?? "—");
+    const sector = String(props.sector ?? "—");
+    const urbanRural = String(props.urban_rural ?? "—");
+    const enrollment = props.enrollment != null ? Number(props.enrollment) : null;
     const schoolId = String(props.school_id ?? "");
+    const hasClimateDetail = props.tmax_avg_c != null;
+
+    const climateRows = hasClimateDetail
+      ? `
+          <li><span>Tmax prom.</span><b>${Number(props.tmax_avg_c).toFixed(1)}°C</b></li>
+          <li><span>Bienestar</span><b>${Number(props.wellbeing_score ?? 0).toFixed(1)}</b></li>
+          <li><span>Salud</span><b>${Number(props.health_index ?? 0).toFixed(1)}</b></li>
+          <li><span>Matrícula</span><b>${Number(props.enrollment ?? 0).toLocaleString("es")}</b></li>`
+      : `
+          <li><span>Sector</span><b>${sector}</b></li>
+          <li><span>Zona</span><b>${urbanRural}</b></li>
+          ${enrollment != null ? `<li><span>Matrícula</span><b>${enrollment.toLocaleString("es")}</b></li>` : ""}`;
+
+    const actionButton = hasClimateDetail
+      ? `<button type="button" class="map-popup-action" data-school-id="${schoolId}">Ver ficha completa</button>`
+      : "";
 
     fadeOutPopup(() => {
       const popup = new maplibregl.Popup({
@@ -151,14 +158,9 @@ export default function SchoolMap({
         .setHTML(`
           <div class="map-popup">
             <strong>${name}</strong>
-            <p>${admin1} · ${level}</p>
-            <ul>
-              <li><span>Tmax prom.</span><b>${tmax.toFixed(1)}°C</b></li>
-              <li><span>Bienestar</span><b>${wellbeing.toFixed(1)}</b></li>
-              <li><span>Salud</span><b>${health.toFixed(1)}</b></li>
-              <li><span>Matrícula</span><b>${enrollment.toLocaleString("es")}</b></li>
-            </ul>
-            <button type="button" class="map-popup-action" data-school-id="${schoolId}">Ver ficha completa</button>
+            <p>${admin1}${admin2 !== "—" ? ` · ${admin2}` : ""}</p>
+            <ul>${climateRows}</ul>
+            ${actionButton}
           </div>`)
         .addTo(map);
 
@@ -242,24 +244,6 @@ export default function SchoolMap({
     };
   }
 
-  // Precargar grilla (no esperar al mapa)
-  useEffect(() => {
-    let cancelled = false;
-    fetchTempGrid(tempScenario)
-      .then((data) => {
-        if (cancelled) return;
-        tempGridDataRef.current = data;
-        const map = mapRef.current;
-        if (map?.isStyleLoaded() && map.getSource("schools")) {
-          applyTempGridToSchoolMap(map, data);
-        }
-      })
-      .catch(console.error);
-    return () => {
-      cancelled = true;
-    };
-  }, [tempScenario]);
-
   // Crear mapa
   useEffect(() => {
     if (!mounted || !containerRef.current) return;
@@ -310,14 +294,6 @@ export default function SchoolMap({
     });
   }, [theme, mounted, mapReady]);
 
-  // Aplicar grilla cuando el mapa queda listo (p. ej. fetch terminó antes)
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!mapReady || !map?.isStyleLoaded() || !tempGridDataRef.current) return;
-    if (!map.getSource("schools")) return;
-    applyTempGridToSchoolMap(map, tempGridDataRef.current);
-  }, [mapReady, tempScenario]);
-
   useEffect(() => {
     const map = mapRef.current;
     if (!map?.isStyleLoaded()) return;
@@ -331,7 +307,6 @@ export default function SchoolMap({
 
   return (
     <div className={`map-with-temp${variant === "tall" ? " map-with-temp--tall" : ""}`}>
-      <TempScenarioFilter value={tempScenario} onChange={setTempScenario} />
       <div className="map-panel-top map-panel-top--export-only">
         <ExportToolbar onShare={exportMapShare} onPng={exportMapPng} onCsv={exportMapCsv} />
       </div>

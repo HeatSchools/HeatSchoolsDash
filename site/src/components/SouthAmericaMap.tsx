@@ -15,21 +15,7 @@ import {
   PROJECT_COUNTRY_ISOS,
   type ProjectCountryIso,
 } from "@/lib/mapStyles";
-import {
-  applyTempGridToSchoolMap,
-  clusterStrokeForTheme,
-  onMapStyleReady,
-} from "@/lib/schoolMapLayers";
-import {
-  DEFAULT_TEMP_SCENARIO,
-  fetchTempGrid,
-  findMapLabelAnchor,
-  raiseLayersAboveHeatmap,
-  SCHOOL_POINT_LAYERS,
-  syncTempGridLayer,
-  type TempScenarioId,
-} from "@/lib/tempGrid";
-import TempScenarioFilter from "./TempScenarioFilter";
+import { clusterStrokeForTheme, onMapStyleReady } from "@/lib/schoolMapLayers";
 import type { CountryCode, SchoolFeature } from "@/lib/types";
 
 const SA_GEOJSON_URL = "/data/regions/south-america.geojson";
@@ -47,10 +33,9 @@ const CUSTOM_LAYERS = [
   "school-clusters",
   "sa-borders",
   "sa-dim",
-  "temp-grid-heat",
 ] as const;
 
-const CUSTOM_SOURCES = ["temp-grid", "schools", "sa-countries"] as const;
+const CUSTOM_SOURCES = ["schools", "sa-countries"] as const;
 
 export interface CountryMapInfo {
   code: CountryCode;
@@ -119,9 +104,7 @@ export default function SouthAmericaMap({
   const handlersRef = useRef<InteractionHandlers>({});
   const styleGenerationRef = useRef(0);
   const mapThemeRef = useRef<"light" | "dark" | null>(null);
-  const tempGridDataRef = useRef<GeoJSON.FeatureCollection | null>(null);
   const [mapReady, setMapReady] = useState(false);
-  const [tempScenario, setTempScenario] = useState<TempScenarioId>(DEFAULT_TEMP_SCENARIO);
   const { theme, mounted } = useTheme();
 
   schoolsRef.current = schoolFeatures;
@@ -240,6 +223,12 @@ export default function SouthAmericaMap({
     }
   }
 
+  function findMapLabelAnchor(map: maplibregl.Map): string | undefined {
+    const style = map.getStyle();
+    if (!style?.layers) return undefined;
+    return style.layers.find((layer) => layer.type === "symbol" && layer.layout?.["text-field"])?.id;
+  }
+
   function installCustomContent(map: maplibregl.Map) {
     if (!geojsonRef.current) return;
 
@@ -248,10 +237,6 @@ export default function SouthAmericaMap({
     const beforeLabels = findMapLabelAnchor(map);
 
     map.addSource("sa-countries", { type: "geojson", data: geojsonRef.current });
-
-    if (tempGridDataRef.current) {
-      syncTempGridLayer(map, tempGridDataRef.current, beforeLabels);
-    }
 
     map.addLayer(
       {
@@ -336,7 +321,6 @@ export default function SouthAmericaMap({
       beforeLabels
     );
 
-    raiseLayersAboveHeatmap(map, SCHOOL_POINT_LAYERS);
     applyDimming(map, focusRef.current);
   }
 
@@ -484,23 +468,6 @@ export default function SouthAmericaMap({
 
   useEffect(() => {
     let cancelled = false;
-    fetchTempGrid(tempScenario)
-      .then((data) => {
-        if (cancelled) return;
-        tempGridDataRef.current = data;
-        const map = mapRef.current;
-        if (map?.isStyleLoaded() && map.getSource("sa-countries")) {
-          applyTempGridToSchoolMap(map, data);
-        }
-      })
-      .catch(console.error);
-    return () => {
-      cancelled = true;
-    };
-  }, [tempScenario, mapReady]);
-
-  useEffect(() => {
-    let cancelled = false;
 
     fetch(SA_GEOJSON_URL)
       .then((r) => r.json())
@@ -584,7 +551,6 @@ export default function SouthAmericaMap({
 
   return (
     <div className="home-map-wrap">
-      <TempScenarioFilter value={tempScenario} onChange={setTempScenario} />
       <div className="map-panel-top">
         <p className="panel-hint">
           <span className="hint-cursor" aria-hidden="true">↖</span>

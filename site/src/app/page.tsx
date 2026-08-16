@@ -1,4 +1,4 @@
-import { loadAllSchools, loadCountrySchools, loadAllSchoolFeatures, countByCountry } from "@/lib/schools";
+import { loadAllSchools, loadCountrySchools, loadAllSchoolMapFeatures, countByCountry } from "@/lib/schools";
 import { computeGlobalKpis, computeCountryKpis } from "@/lib/aggregates";
 import { countByField, schoolsByCountry } from "@/lib/distributions";
 import { loadCountryDaily } from "@/lib/summary";
@@ -17,7 +17,7 @@ export default function HomePage() {
   const allSchools = loadAllSchools();
   const globalKpis = computeGlobalKpis(allSchools);
   const counts = countByCountry();
-  const schoolFeatures = loadAllSchoolFeatures();
+  const schoolFeatures = loadAllSchoolMapFeatures();
 
   const dailyByCountry = Object.fromEntries(
     COUNTRIES.map((c) => [c.code, loadCountryDaily(c.slug)])
