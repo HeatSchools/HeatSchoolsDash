@@ -136,7 +136,7 @@ El sitio usa **export estático** (`output: "export"`) y se publica como **asset
 | **Deploy command** | `npx wrangler deploy` |
 | **Branch (producción)** | `main` |
 
-Variable de entorno recomendada: `NODE_VERSION` = `20`.
+Variable de entorno requerida: `NODE_VERSION` = `22` (Wrangler 4.x exige Node ≥ 22).
 
 #### Si el deploy falla con “Could not detect a directory containing static files”
 
@@ -144,7 +144,7 @@ Ese error indica que Wrangler se ejecutó **fuera** de `site/` (no encontró `wr
 
 1. **Root directory mal escrito** — debe ser `site`, no `/site`.
 2. **Build no ejecutado** — el log debe mostrar `npm run build` antes de `wrangler deploy`.
-3. **Node no detectado** — agrega la variable `NODE_VERSION=20` en Settings → Variables.
+3. **Node demasiado antiguo** — Wrangler 4.x requiere Node ≥ 22; configura `NODE_VERSION=22` en Settings → Variables.
 
 Tras corregir, usa **Retry deployment** o haz un push vacío a `main`.
 
